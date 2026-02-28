@@ -45,6 +45,10 @@ This file maps the requested linear algebra inventory to implementation surfaces
   - full coordinate-family parameterization diagnostics for non-unique coordinate workflows
   - baseline math typography rendering upgrades across answer/diagnostic/step result surfaces
 - Milestones A through D (Phase 4) are complete for currently in-scope computational workflows.
+- Phase 5+ UX follow-ons are now explicitly planned for:
+  - matrix-grid/LaTeX-forward math presentation upgrades beyond token-level typography
+  - native polynomial/matrix-space element entry editors
+  - explicit REF/RREF panel visibility for elimination workflows
 - Remaining rows in this matrix that target later phases (theory depth, orthogonality, and advanced topics) remain intentionally in-progress.
 
 ---
@@ -71,6 +75,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 ### Abstract vector spaces
 - polynomial spaces `P_n(F)` represented by basis - Exact/Both - Phase 4 (preset templates complete)
 - matrix spaces as vector spaces - Exact/Both - Phase 4 (preset templates complete)
+- direct polynomial element entry (coefficient-form editor) - Exact/Both - Phase 5+ spaces expansion
+- direct matrix-space element entry (matrix-object editor) - Exact/Both - Phase 5+ spaces expansion
 - function spaces represented through finite-dimensional chosen bases - Numeric/Exact depending basis - Later in spaces/orthogonality expansion
 
 ### Linear maps / operators
@@ -116,6 +122,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | elementary row operations | Solve | Exact/Both | Core MVP |
 | REF | Solve | Exact/Both | Core MVP |
 | RREF | Solve | Exact/Both | Core MVP |
+| explicit REF/RREF matrix panels in result UI | Solve / Analyze | Exact/Both | Phase 5+ UX follow-on |
 | Gaussian elimination | Solve | Exact/Both | Core MVP |
 | Gauss-Jordan elimination | Solve | Exact/Both | Core MVP |
 | analyze number of solutions | Solve | Exact/Both | Core MVP |

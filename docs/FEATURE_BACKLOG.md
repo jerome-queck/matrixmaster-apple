@@ -8,6 +8,13 @@ These features are valid future work but should not block the core build.
   - math typography baseline across result surfaces (consistent superscript/subscript/fraction rendering in answer, diagnostics, and steps)
   - abstract-space presets for Spaces workflows (polynomial-space and matrix-space templates, including direct apply actions for generating sets)
 
+## Phase 5+ UX and input follow-ons
+- structured matrix rendering in result surfaces (matrix brackets/grid layout instead of plain inline text)
+- LaTeX-ready copy/export formatting for matrix/vector/polynomial result objects
+- explicit REF/RREF matrix panels for Solve and elimination-backed Analyze outputs
+- native polynomial-space element editors (for example coefficient entry against `{1, x, x^2, ...}`)
+- native matrix-space element editors that let users enter basis vectors as matrix objects directly
+
 ## Advanced algebra
 - minimal polynomial
 - Jordan canonical form

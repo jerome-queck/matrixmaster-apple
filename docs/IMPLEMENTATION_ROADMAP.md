@@ -202,6 +202,16 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - orthogonal complements
 - least squares
 
+### Planned Phase 5+ UX follow-ons
+- structured math rendering phase 2:
+  - display matrix-valued results in bracketed grid form instead of plain inline text
+  - add LaTeX-ready copy/export formatting for matrix/vector/polynomial result objects
+- row-reduction visibility phase 2:
+  - expose explicit REF/RREF matrix panels in Solve (and elimination-backed Analyze outputs) instead of steps-only traces
+- spaces input phase 2:
+  - add native polynomial-entry editors (for example coefficient-form input over `{1, x, x^2, ...}`)
+  - add native matrix-space element entry/editing views while preserving basis-coordinate computation under the hood
+
 ### Exit criteria
 - projection and least squares workflows are clear, stable, and reusable
 

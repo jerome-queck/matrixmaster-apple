@@ -81,6 +81,7 @@ Cover:
 - accessibility labels for major surfaces
 - larger text layout sanity for common tasks
 - sync status visibility in Library and relevant item detail surfaces
+- simulator launch resilience for mobile UI runs (retry or reset when preflight-busy launch faults occur)
 
 ## Test fixture design
 
@@ -144,6 +145,10 @@ At minimum, CI should run:
 - mocked sync-state tests
 - any fast UI smoke tests
 - lint/format if configured
+
+For local/CI mobile scheme runs, use:
+- `scripts/run_mobile_scheme_tests.sh`
+This wrapper runs iPhone + iPad destinations and auto-recovers known transient simulator launch failures (including iPad preflight-busy faults) by resetting the affected simulator and retrying once.
 
 Longer-running device-based or account-backed sync suites can be split if needed, but the release process should still include real cross-device smoke coverage before shipping.
 
