@@ -130,4 +130,71 @@ final class MatrixPersistenceTests: XCTestCase {
         XCTAssertEqual(convergedSnapshot.state, .synced)
         XCTAssertEqual(convergedSnapshot.pendingWrites, 0)
     }
+
+    func testInMemoryLibraryCatalogStoreRoundTrip() async throws {
+        let store = InMemoryLibraryCatalogStore()
+
+        let saved = try await store.saveVector(name: "vSaved", entries: ["1", "2", "3"])
+        try await store.appendHistory(
+            MatrixLibraryHistoryEntry(
+                title: "Saved vector",
+                detail: "Saved \(saved.name)."
+            )
+        )
+
+        let vectors = try await store.loadVectors()
+        XCTAssertEqual(vectors.count, 1)
+        XCTAssertEqual(vectors.first?.name, "vSaved")
+        XCTAssertEqual(vectors.first?.entries, ["1", "2", "3"])
+
+        let history = try await store.loadHistory(limit: 5)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertTrue(history.first?.title.contains("Saved") == true)
+
+        let exported = try await store.exportSnapshotData()
+        let decoded = try JSONDecoder.iso8601.decode(MatrixLibrarySnapshot.self, from: exported)
+        XCTAssertEqual(decoded.vectors.count, 1)
+        XCTAssertEqual(decoded.history.count, 1)
+
+        try await store.deleteVector(id: saved.id)
+        let afterDelete = try await store.loadVectors()
+        XCTAssertEqual(afterDelete.count, 0)
+    }
+
+    func testFileLibraryCatalogStorePersistsCatalog() async throws {
+        let tempDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MatrixMasterLibraryTests", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let libraryURL = tempDirectory
+            .appendingPathComponent("LibraryCatalog")
+            .appendingPathExtension("json")
+
+        let store = FileLibraryCatalogStore(fileURL: libraryURL)
+        _ = try await store.saveVector(name: "basis-v1", entries: ["1", "0"])
+
+        let restoredStore = FileLibraryCatalogStore(fileURL: libraryURL)
+        let restoredVectors = try await restoredStore.loadVectors()
+        XCTAssertEqual(restoredVectors.count, 1)
+        XCTAssertEqual(restoredVectors.first?.name, "basis-v1")
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: libraryURL.path))
+    }
+
+    func testWorkspaceFileLocationsExposeLibraryPaths() {
+        let libraryURL = MatrixWorkspaceFileLocations.defaultLibraryCatalogURL()
+        let exportURL = MatrixWorkspaceFileLocations.defaultLibraryExportURL()
+
+        XCTAssertEqual(libraryURL.pathExtension, "json")
+        XCTAssertEqual(exportURL.pathExtension, "json")
+        XCTAssertTrue(libraryURL.lastPathComponent.contains("LibraryCatalog"))
+        XCTAssertTrue(exportURL.lastPathComponent.contains("MatrixMaster-Library-Export"))
+    }
+}
+
+private extension JSONDecoder {
+    static var iso8601: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }
 }

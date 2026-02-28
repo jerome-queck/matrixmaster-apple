@@ -102,5 +102,16 @@ Do not call a feature done unless:
 - [x] create local persistence and sync foundations
 - [x] build editors and shared result views
 - [x] ship milestone A
-- [ ] ship milestone B
+- [x] ship milestone B
 - [ ] continue through roadmap
+
+Current status:
+- Milestone B is complete for the Core MVP workflow set.
+- Phase 3 (Spaces and bases) is complete with checkpoints 1, 2, and 3 delivered.
+- Solve now runs in both exact and numeric modes with augmented-matrix row reduction, classification, and reusable payload output.
+- Operate now supports matrix/vector arithmetic, matrix-vector products, transpose/trace/powers, and expression routing in both exact and numeric engines.
+- Analyze now covers exact determinant/rank/nullity/trace/inverse, numeric determinant/rank/nullity/trace/LU/QR/SVD-baseline/eigen-baseline/inverse summaries, Phase 3 checkpoint 1 fundamental-subspace witnesses (column/row/null space bases with rank-nullity identity summaries), Phase 3 checkpoint 2 basis workflows (span-membership, independence/dependence, and coordinate-vector certificates), and Phase 3 checkpoint 3 coordinate-family diagnostics for non-unique coordinate systems.
+- Spaces now provides dedicated exact and numeric workflows for basis test/extract, basis extend/prune, subspace sum, subspace intersection, and direct-sum checks with reusable basis payload output.
+- Matrix and vector editor tabs now expose randomize actions anywhere users manually fill entries.
+- Phase 4 (Linear maps and basis changes) is the next implementation phase; carry-over polish from Phase 3 is scheduled there (math typography baseline and richer coordinate-family diagnostics), while abstract-space presets stay in the backlog for later expansion checkpoints.
+- Library now includes persistence-backed vector save/load/delete, history logging, JSON export baseline, and sync-state-aware local-first write tracking.

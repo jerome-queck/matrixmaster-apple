@@ -4,6 +4,7 @@ public enum MatrixMasterDestination: String, CaseIterable, Codable, Identifiable
     case solve
     case operate
     case analyze
+    case spaces
     case library
 
     public var id: String { rawValue }
@@ -16,6 +17,8 @@ public enum MatrixMasterDestination: String, CaseIterable, Codable, Identifiable
             return "Operate"
         case .analyze:
             return "Analyze"
+        case .spaces:
+            return "Spaces"
         case .library:
             return "Library"
         }
@@ -29,6 +32,8 @@ public enum MatrixMasterDestination: String, CaseIterable, Codable, Identifiable
             return "plus.forwardslash.minus"
         case .analyze:
             return "chart.bar.doc.horizontal"
+        case .spaces:
+            return "square.stack.3d.up"
         case .library:
             return "books.vertical"
         }
@@ -69,15 +74,163 @@ public enum MatrixMasterSyncState: String, CaseIterable, Codable, Sendable {
     }
 }
 
+public struct MatrixReusablePayload: Equatable, Codable, Sendable {
+    public var entries: [[String]]
+    public var source: String
+
+    public init(entries: [[String]], source: String) {
+        self.entries = entries
+        self.source = source
+    }
+}
+
+public struct VectorReusablePayload: Equatable, Codable, Sendable {
+    public var name: String
+    public var entries: [String]
+    public var source: String
+
+    public init(name: String, entries: [String], source: String) {
+        self.name = name
+        self.entries = entries
+        self.source = source
+    }
+}
+
+public enum MatrixMasterReusablePayload: Equatable, Codable, Sendable {
+    case matrix(MatrixReusablePayload)
+    case vector(VectorReusablePayload)
+}
+
+public enum MatrixOperateKind: String, CaseIterable, Codable, Sendable {
+    case matrixAdd
+    case matrixSubtract
+    case matrixMultiply
+    case transpose
+    case trace
+    case power
+    case matrixVectorProduct
+    case vectorAdd
+    case scalarVectorMultiply
+    case expression
+
+    public var title: String {
+        switch self {
+        case .matrixAdd:
+            return "A + B"
+        case .matrixSubtract:
+            return "A - B"
+        case .matrixMultiply:
+            return "A * B"
+        case .transpose:
+            return "transpose(A)"
+        case .trace:
+            return "trace(A)"
+        case .power:
+            return "A^k"
+        case .matrixVectorProduct:
+            return "A * v"
+        case .vectorAdd:
+            return "u + v"
+        case .scalarVectorMultiply:
+            return "s * v"
+        case .expression:
+            return "Expression"
+        }
+    }
+}
+
+public enum MatrixAnalyzeKind: String, CaseIterable, Codable, Sendable {
+    case matrixProperties
+    case spanMembership
+    case independence
+    case coordinates
+
+    public var title: String {
+        switch self {
+        case .matrixProperties:
+            return "Matrix Properties"
+        case .spanMembership:
+            return "Span Membership"
+        case .independence:
+            return "Independence"
+        case .coordinates:
+            return "Coordinate Vector"
+        }
+    }
+}
+
+public enum MatrixSpacesKind: String, CaseIterable, Codable, Sendable {
+    case basisTestExtract
+    case basisExtendPrune
+    case subspaceSum
+    case subspaceIntersection
+    case directSumCheck
+
+    public var title: String {
+        switch self {
+        case .basisTestExtract:
+            return "Basis Test / Extract"
+        case .basisExtendPrune:
+            return "Basis Extend / Prune"
+        case .subspaceSum:
+            return "Subspace Sum (U + W)"
+        case .subspaceIntersection:
+            return "Subspace Intersection (U ∩ W)"
+        case .directSumCheck:
+            return "Direct Sum Check"
+        }
+    }
+}
+
 public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
     public var destination: MatrixMasterDestination
     public var mode: MatrixMasterMathMode
     public var inputSummary: String
+    public var matrixEntries: [[String]]?
+    public var secondaryMatrixEntries: [[String]]?
+    public var vectorEntries: [String]?
+    public var secondaryVectorEntries: [String]?
+    public var scalarToken: String?
+    public var exponent: Int?
+    public var operateKind: MatrixOperateKind?
+    public var expression: String?
+    public var basisVectors: [[String]]?
+    public var secondaryBasisVectors: [[String]]?
+    public var analyzeKind: MatrixAnalyzeKind?
+    public var spacesKind: MatrixSpacesKind?
 
-    public init(destination: MatrixMasterDestination, mode: MatrixMasterMathMode, inputSummary: String) {
+    public init(
+        destination: MatrixMasterDestination,
+        mode: MatrixMasterMathMode,
+        inputSummary: String,
+        matrixEntries: [[String]]? = nil,
+        secondaryMatrixEntries: [[String]]? = nil,
+        vectorEntries: [String]? = nil,
+        secondaryVectorEntries: [String]? = nil,
+        scalarToken: String? = nil,
+        exponent: Int? = nil,
+        operateKind: MatrixOperateKind? = nil,
+        expression: String? = nil,
+        basisVectors: [[String]]? = nil,
+        secondaryBasisVectors: [[String]]? = nil,
+        analyzeKind: MatrixAnalyzeKind? = nil,
+        spacesKind: MatrixSpacesKind? = nil
+    ) {
         self.destination = destination
         self.mode = mode
         self.inputSummary = inputSummary
+        self.matrixEntries = matrixEntries
+        self.secondaryMatrixEntries = secondaryMatrixEntries
+        self.vectorEntries = vectorEntries
+        self.secondaryVectorEntries = secondaryVectorEntries
+        self.scalarToken = scalarToken
+        self.exponent = exponent
+        self.operateKind = operateKind
+        self.expression = expression
+        self.basisVectors = basisVectors
+        self.secondaryBasisVectors = secondaryBasisVectors
+        self.analyzeKind = analyzeKind
+        self.spacesKind = spacesKind
     }
 }
 
@@ -85,11 +238,18 @@ public struct MatrixMasterComputationResult: Equatable, Codable, Sendable {
     public var answer: String
     public var diagnostics: [String]
     public var steps: [String]
+    public var reusablePayloads: [MatrixMasterReusablePayload]
 
-    public init(answer: String, diagnostics: [String], steps: [String]) {
+    public init(
+        answer: String,
+        diagnostics: [String],
+        steps: [String],
+        reusablePayloads: [MatrixMasterReusablePayload] = []
+    ) {
         self.answer = answer
         self.diagnostics = diagnostics
         self.steps = steps
+        self.reusablePayloads = reusablePayloads
     }
 }
 
@@ -105,6 +265,60 @@ public struct MatrixMasterShellSnapshot: Equatable, Codable, Sendable {
     ) {
         self.selectedDestination = selectedDestination
         self.selectedMode = selectedMode
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct MatrixLibraryVectorItem: Identifiable, Equatable, Codable, Sendable {
+    public var id: UUID
+    public var name: String
+    public var entries: [String]
+    public var savedAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        entries: [String],
+        savedAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.entries = entries
+        self.savedAt = savedAt
+    }
+}
+
+public struct MatrixLibraryHistoryEntry: Identifiable, Equatable, Codable, Sendable {
+    public var id: UUID
+    public var title: String
+    public var detail: String
+    public var recordedAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        title: String,
+        detail: String,
+        recordedAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.detail = detail
+        self.recordedAt = recordedAt
+    }
+}
+
+public struct MatrixLibrarySnapshot: Equatable, Codable, Sendable {
+    public var vectors: [MatrixLibraryVectorItem]
+    public var history: [MatrixLibraryHistoryEntry]
+    public var updatedAt: Date
+
+    public init(
+        vectors: [MatrixLibraryVectorItem] = [],
+        history: [MatrixLibraryHistoryEntry] = [],
+        updatedAt: Date = Date()
+    ) {
+        self.vectors = vectors
+        self.history = history
         self.updatedAt = updatedAt
     }
 }
@@ -207,6 +421,26 @@ public struct MatrixDraftInput: Equatable, Codable, Sendable {
             repeating: Array(repeating: value, count: safeColumns),
             count: safeRows
         )
+    }
+
+    public init(entries: [[String]], fillMissingWith value: String = "0") {
+        let safeEntries = entries.isEmpty ? [[value]] : entries
+        let rowCount = safeEntries.count
+        let columnCount = max(1, safeEntries.map(\.count).max() ?? 1)
+
+        self.rows = rowCount
+        self.columns = columnCount
+        self.entries = safeEntries.map { row in
+            if row.count == columnCount {
+                return row
+            }
+
+            if row.count > columnCount {
+                return Array(row.prefix(columnCount))
+            }
+
+            return row + Array(repeating: value, count: columnCount - row.count)
+        }
     }
 
     public var dimensions: MatrixDimensions {

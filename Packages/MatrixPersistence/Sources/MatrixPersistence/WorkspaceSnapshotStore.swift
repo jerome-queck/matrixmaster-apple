@@ -147,6 +147,24 @@ public enum MatrixWorkspaceFileLocations {
             .appendingPathComponent("SyncStatus")
             .appendingPathExtension("json")
     }
+
+    public static func defaultLibraryCatalogURL(fileManager: FileManager = .default) -> URL {
+        let baseDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        let appDirectory = baseDirectory.appendingPathComponent("MatrixMaster", isDirectory: true)
+
+        return appDirectory
+            .appendingPathComponent("LibraryCatalog")
+            .appendingPathExtension("json")
+    }
+
+    public static func defaultLibraryExportURL(fileManager: FileManager = .default) -> URL {
+        let baseDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first
+            ?? fileManager.temporaryDirectory
+        return baseDirectory
+            .appendingPathComponent("MatrixMaster-Library-Export")
+            .appendingPathExtension("json")
+    }
 }
 
 public actor InMemoryWorkspaceSnapshotStore: WorkspaceSnapshotStoring {

@@ -2,6 +2,13 @@
 
 These features are valid future work but should not block the core build.
 
+## Phase transition carry-over (scheduled)
+- Phase 4 checkpoint 1:
+  - richer multi-solution coordinate-family diagnostics (full family parameterization beyond single witness + one nullspace direction)
+  - math typography baseline across result surfaces (consistent superscript/subscript/fraction rendering in answer, diagnostics, and steps)
+- Phase 4 checkpoint 2+:
+  - abstract-space presets for Spaces workflows (polynomial-space and matrix-space templates, plus related input affordances)
+
 ## Advanced algebra
 - minimal polynomial
 - Jordan canonical form

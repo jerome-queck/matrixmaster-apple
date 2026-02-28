@@ -186,15 +186,24 @@ Each feature should expose:
 
 Do not let one feature reach directly into another feature's private implementation.
 
-## Result reuse mechanism (Milestone A plan)
+## Result reuse mechanism (Milestone B closure)
 
-Result reuse is planned as a first-class cross-feature path:
-- computations emit typed reusable payloads (matrix, vector, basis, decomposition metadata)
-- a reuse router maps payload kinds to destination-prefilled requests (Solve/Operate/Analyze/Library)
-- feature modules expose payload adapters instead of directly mutating each other's state
-- persistence can promote reusable payloads into named library records without re-entry
+Result reuse is now implemented as a first-class cross-feature path:
+- computations emit typed reusable payloads (`matrix` and `vector` currently)
+- Solve exact/numeric results publish coefficient-matrix payloads and unique-solution vectors when available
+- Analyze exact/numeric results publish reusable matrix payloads (RREF, inverse, decomposition factors, and fundamental-subspace basis matrices where available)
+- Analyze now multiplexes matrix-property and basis-oriented workflows (span membership, independence/dependence, and coordinate vectors) through explicit request-kind routing in the feature layer
+- Spaces now has dedicated feature-level workflow routing (basis test/extract, basis extend/prune, subspace sum/intersection/direct-sum) through explicit request-kind contracts in the domain layer
+- fundamental-subspace reusable basis payloads use a consistent vectors-as-columns orientation across column/row/null-space outputs
+- non-unique coordinate workflows now emit reusable witness vectors plus nullspace-direction vectors so downstream tools can inspect coordinate families
+- Operate exact/numeric results publish reusable matrix or vector payloads by operation kind
+- feature modules expose payload adapters instead of directly mutating each other's private state
+- payload adapters prefill Analyze/Operate matrix inputs and Operate/Library vector inputs from reusable payloads
+- Library persistence actions now promote reusable vectors into durable catalog records and history entries
 
-Milestone A keeps this as architecture + UX contract; Milestone B implements the first concrete reuse adapters and flows.
+Post-Milestone-B follow-up:
+- expand payload model to basis/map/subspace object families as those workflows ship
+- add richer destination hints when multiple compatible destinations exist
 
 ## Concurrency model
 

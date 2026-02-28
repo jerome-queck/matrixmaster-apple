@@ -110,6 +110,24 @@ Primary method:
 - exact row reduction in exact mode
 - stable numeric decomposition in numeric mode for large dense systems
 
+Current implementation baseline (Milestone C checkpoint 3):
+- exact Solve uses rational Gauss-Jordan reduction on augmented matrices
+- numeric Solve uses tolerance-aware floating-point row reduction on augmented matrices
+- Solve emits row-operation trace steps and classifies systems as unique / infinitely many / inconsistent
+- Solve emits reusable payloads for coefficient matrices, reduced matrices, and unique-solution vectors when available
+- exact Operate covers matrix/vector arithmetic, transpose/trace/powers, matrix-vector products, and expression-routed operations
+- numeric Operate covers the same operation family with tolerance-aware parsing and reusable payload output
+- exact Analyze computes determinant, rank, nullity, trace, and rendered inverse-matrix output over rationals
+- numeric Analyze computes rank, nullity, trace, determinant, LU and QR summaries, SVD-baseline singular spectrum, dominant-eigen baseline, and rendered inverse-matrix output with tolerance reporting
+- exact and numeric Analyze now emit column-space, row-space, and null-space basis witnesses from pivot/RREF analysis
+- exact and numeric Analyze now emit rank-nullity identity diagnostics and reusable basis-matrix payloads
+- exact and numeric Analyze now support span-membership workflows with basis vectors and target-vector coefficients when in span
+- exact and numeric Analyze now support independence/dependence workflows with explicit dependence coefficients when dependent
+- exact and numeric Analyze now support coordinate-vector workflows for ordered basis input with coefficient outputs when uniquely determined
+- exact and numeric Analyze now report coordinate-family diagnostics for non-unique coordinate systems with witness plus nullspace-direction payload output
+- fundamental-subspace basis payload matrices now use consistent vectors-as-columns orientation for column/row/null outputs
+- exact and numeric Spaces workflows now support basis test/extract, basis extend/prune, subspace sum/intersection, and direct-sum checks via explicit `spacesKind` routing
+
 Outputs:
 - consistency
 - unique / infinite / no solution
@@ -158,6 +176,7 @@ Compute:
 - row space basis from nonzero rows of echelon/reduced form
 - null space basis from free-variable parameterization
 - optional left null space later if exposed explicitly
+- reusable basis-matrix payloads should encode basis vectors as columns regardless of source subspace
 
 ### Linear transformations
 Support definitions by:

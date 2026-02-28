@@ -8,6 +8,19 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 
 ---
 
+## Current status (2026-02-28)
+
+- Phase 0 complete.
+- Phase 1 complete.
+- Phase 2 (Milestone B Core MVP workflows) complete.
+- Phase 3 (Spaces and bases) is complete.
+- Phase 3 checkpoint 1 is complete: Analyze now emits column/row/null space basis witnesses and rank-nullity identity summaries in exact and numeric modes.
+- Phase 3 checkpoint 2 is complete: Analyze now supports span membership, independence/dependence, and coordinate-vector workflows with witness certificates in exact and numeric modes.
+- Phase 3 checkpoint 3 is complete: dedicated Spaces workflows now cover basis testing/extraction, basis extension/pruning, and subspace sum/intersection/direct-sum helpers in exact and numeric modes, with coordinate-family diagnostics expanded for non-unique coordinate solutions.
+- Phase 4 (Linear maps and basis changes) is next.
+
+---
+
 ## Phase 0 - Bootstrap
 
 ### Goals
@@ -119,6 +132,24 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - rank-nullity summaries
 - subspace sum/intersection/direct sum
 
+### Checkpoint status (2026-02-28)
+- checkpoint 1 complete:
+  - Analyze exact and numeric now report witness-oriented column-space, row-space, and null-space basis summaries from RREF/pivot analysis.
+  - Analyze now includes explicit rank-nullity identity diagnostics and reusable basis-matrix payloads.
+- checkpoint 2 complete:
+  - Analyze exact and numeric now support span-membership checks against basis vectors with coefficient certificates for witnessable representations.
+  - Analyze exact and numeric now support linear-independence/dependence checks with explicit dependence-relation coefficients when dependent.
+  - Analyze exact and numeric now support coordinate-vector workflows over ordered basis input with coefficient outputs and diagnostics when coordinates are not uniquely available.
+  - Fundamental-subspace basis payload orientation is now standardized as vectors-as-columns for all column/row/null-space matrix payloads.
+- checkpoint 3 complete:
+  - dedicated Spaces destination and request routing now support basis test/extract and basis extend/prune workflows in exact and numeric modes.
+  - Spaces now supports subspace sum, subspace intersection, and direct-sum checks with basis-witness payloads and dimension diagnostics.
+  - coordinate-vector workflows now emit non-unique-family diagnostics with witness coordinates and nullspace-direction reuse payloads when uniqueness fails.
+- follow-up items moved out of Phase 3 scope:
+  - richer multi-solution coordinate-family displays beyond one witness plus one nullspace direction -> Phase 4 checkpoint 1 (workflow diagnostics polish).
+  - broader math-typography rendering upgrades across result surfaces -> Phase 4 checkpoint 1 (UI rendering polish).
+  - abstract-space presets (polynomial and matrix-space templates) for Spaces workflows -> Phase 4 checkpoint 2+ (spaces UX expansion).
+
 ### Exit criteria
 - the app clearly bridges matrix computations and space-level reasoning
 - every decision includes a witness/certificate where meaningful
@@ -134,6 +165,9 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - basis-relative matrix representations
 - change-of-coordinates matrices
 - similarity from basis change
+- carry-over polish from Phase 3:
+  - richer multi-solution coordinate-family diagnostics
+  - baseline math typography rendering upgrades across result surfaces
 
 ### Exit criteria
 - users can move naturally between abstract maps and matrix representations

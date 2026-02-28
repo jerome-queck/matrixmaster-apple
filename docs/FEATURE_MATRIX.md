@@ -8,6 +8,36 @@ This file maps the requested linear algebra inventory to implementation surfaces
 - **Mode** - Exact, Numeric, or Both
 - **Milestone** - roadmap phase in which the feature should land
 
+## Current implementation checkpoint (2026-02-28)
+
+- Milestone A foundation checkpoint is complete.
+- Milestone B Core MVP closure now includes:
+  - Solve in both exact and numeric modes with augmented-matrix REF/RREF, row-operation traces, and unique/infinite/inconsistent classification
+  - homogeneous-system input controls and right-hand-side vector separation in Solve editor surfaces
+  - Operate workflows in exact and numeric modes for matrix/vector arithmetic, matrix-vector product, transpose, trace, powers, and expression-driven operation selection
+  - Analyze exact coverage for determinant, rank, nullity, trace, and inverse output over rationals
+  - Analyze numeric coverage for determinant, rank, nullity, trace, LU, QR, SVD-baseline singular spectrum, dominant-eigen baseline, and inverse output with tolerance diagnostics
+  - result reuse routing across Solve/Analyze/Operate/Library with payload-aware actions
+  - Library baseline with persistence-backed save/load/delete, history, and export actions plus sync-status-aware local-first write tracking
+  - bottom-anchored reuse actions and pinned run-action bar across destination views
+- Milestone C (Spaces and bases) checkpoint 1 now includes:
+  - Analyze exact and numeric column-space basis witnesses from pivot columns
+  - Analyze exact and numeric row-space basis witnesses from nonzero RREF rows
+  - Analyze exact and numeric null-space basis witnesses from free-variable parameterization
+  - Analyze rank-nullity identity diagnostics and reusable basis payloads
+- Milestone C (Spaces and bases) checkpoint 2 now includes:
+  - Analyze span-membership workflows with basis vectors and target-vector witness coefficients
+  - Analyze linear-independence/dependence workflows with dependence-relation coefficients when dependent
+  - Analyze coordinate-vector workflows with ordered basis input and coordinate outputs when uniquely determined
+  - standardized basis payload orientation for fundamental-subspace reusable matrices (vectors-as-columns)
+- Milestone C (Spaces and bases) checkpoint 3 now includes:
+  - dedicated Spaces workflows for basis test/extract and basis extend/prune
+  - dedicated Spaces workflows for subspace sum/intersection/direct-sum checks
+  - coordinate-vector non-unique diagnostics with witness and nullspace-direction payloads
+  - randomize controls on all matrix/vector-entry destination tabs
+- Milestone C computational scope is complete; remaining spaces/bases rows below are theory/UX expansion items scheduled for later phases.
+- Remaining rows in this matrix that target later phases (theory/abstract-space UX expansion, linear maps, orthogonality, advanced topics) remain intentionally in-progress.
+
 ---
 
 ## 0. Supported universes of objects
@@ -20,7 +50,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 ### Vectors
 - vectors in `R^n` - Both - Foundation
 - vectors in `C^n` - Numeric first - Core MVP
-- coordinate vectors relative to bases - Exact/Both - Spaces and bases
+- coordinate vectors relative to bases - Exact/Both - Spaces and bases (checkpoints 2 and 3)
 
 ### Matrices
 - general `m x n` matrices - Both - Foundation
@@ -30,8 +60,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 - elementary matrices - Exact/Both - Core MVP
 
 ### Abstract vector spaces
-- polynomial spaces `P_n(F)` represented by basis - Exact/Both - Spaces and bases
-- matrix spaces as vector spaces - Exact/Both - Spaces and bases
+- polynomial spaces `P_n(F)` represented by basis - Exact/Both - Phase 4+ spaces expansion
+- matrix spaces as vector spaces - Exact/Both - Phase 4+ spaces expansion
 - function spaces represented through finite-dimensional chosen bases - Numeric/Exact depending basis - Later in spaces/orthogonality expansion
 
 ### Linear maps / operators
@@ -127,13 +157,13 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| vector space definition and examples | Theory / Analyze | N/A + coordinate-backed tools | Spaces and bases |
-| subspace test | Analyze / Spaces | Exact/Both | Spaces and bases |
-| intersection of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases |
-| sum of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases |
-| direct sums | Analyze / Spaces | Exact/Both | Spaces and bases |
-| polynomial spaces | Spaces | Exact/Both | Spaces and bases |
-| matrix spaces | Spaces | Exact/Both | Spaces and bases |
+| vector space definition and examples | Theory / Analyze | N/A + coordinate-backed tools | Phase 4+ spaces expansion |
+| subspace test | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
+| intersection of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
+| sum of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
+| direct sums | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
+| polynomial spaces | Spaces | Exact/Both | Phase 4+ spaces expansion |
+| matrix spaces | Spaces | Exact/Both | Phase 4+ spaces expansion |
 
 ---
 
@@ -142,8 +172,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
 | linear combination writing | Operate / Spaces | Both | Core MVP / Spaces |
-| span definition/explanation | Spaces | Both | Spaces and bases |
-| membership in span | Spaces | Exact/Both | Spaces and bases |
+| span definition/explanation | Spaces | Both | Phase 4+ spaces expansion |
+| membership in span | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 2) |
 
 ---
 
@@ -151,9 +181,9 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| independence definitions | Spaces | Both | Spaces and bases |
-| independence tests | Spaces | Exact/Both | Spaces and bases |
-| dependence relations | Spaces | Exact/Both | Spaces and bases |
+| independence definitions | Spaces | Both | Phase 4+ spaces expansion |
+| independence tests | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 2) |
+| dependence relations | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 2) |
 
 ---
 
@@ -161,11 +191,11 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| basis testing | Spaces | Exact/Both | Spaces and bases |
-| dimension | Spaces / Analyze | Exact/Both | Spaces and bases |
-| ordered basis handling | Spaces | Exact/Both | Spaces and bases |
-| coordinate vector | Spaces / Linear maps | Exact/Both | Spaces and bases |
-| basis extension/pruning | Spaces advanced | Exact/Both | Spaces and bases |
+| basis testing | Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
+| dimension | Spaces / Analyze | Exact/Both | Spaces and bases (checkpoint 3) |
+| ordered basis handling | Spaces | Exact/Both | Spaces and bases (checkpoint 2) |
+| coordinate vector | Analyze / Spaces / Linear maps | Exact/Both | Spaces and bases (checkpoints 2 and 3) |
+| basis extension/pruning | Spaces advanced | Exact/Both | Spaces and bases (checkpoint 3) |
 
 ---
 
@@ -173,12 +203,12 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| column space | Analyze | Exact/Both | Spaces and bases |
-| row space | Analyze | Exact/Both | Spaces and bases |
-| null space | Analyze | Exact/Both | Spaces and bases |
-| four fundamental subspaces dashboard | Analyze advanced | Exact/Both | Spaces and bases |
+| column space | Analyze | Exact/Both | Spaces and bases (checkpoint 1) |
+| row space | Analyze | Exact/Both | Spaces and bases (checkpoint 1) |
+| null space | Analyze | Exact/Both | Spaces and bases (checkpoint 1) |
+| four fundamental subspaces dashboard | Analyze advanced | Exact/Both | Phase 4+ spaces expansion |
 | rank | Analyze | Both | Core MVP |
-| rank-nullity theorem summary | Analyze | Exact/Both | Spaces and bases |
+| rank-nullity theorem summary | Analyze | Exact/Both | Spaces and bases (checkpoint 1) |
 
 ---
 
