@@ -74,6 +74,7 @@ Provide a clear segmented or sidebar organization:
 - Subspaces and bases
 - Linear maps
 - Eigen and canonical forms
+- Result presentation and formatting
 - Orthogonality and least squares
 - Applied/later extras when populated
 
@@ -122,6 +123,14 @@ Tools:
 - Gram-Schmidt
 - projections
 - least squares
+
+### Result presentation and formatting subflow
+Tools:
+- matrix-looking result rendering (grid/bracket object view)
+- vector/polynomial object rendering
+- explicit REF/RREF matrix panels for elimination workflows
+- copy/export actions with plain/markdown/LaTeX-ready modes
+- structured answer/diagnostics/steps cards with reusable payload actions
 
 ### Applied/later extras subflow
 Tools:

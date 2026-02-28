@@ -8,7 +8,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 - **Mode** - Exact, Numeric, or Both
 - **Milestone** - roadmap phase in which the feature should land
 
-## Current implementation checkpoint (2026-02-28)
+## Current implementation checkpoint (2026-03-01)
 
 - Milestone A foundation checkpoint is complete.
 - Milestone B Core MVP closure now includes:
@@ -45,10 +45,12 @@ This file maps the requested linear algebra inventory to implementation surfaces
   - full coordinate-family parameterization diagnostics for non-unique coordinate workflows
   - baseline math typography rendering upgrades across answer/diagnostic/step result surfaces
 - Milestones A through D (Phase 4) are complete for currently in-scope computational workflows.
-- Phase 5+ UX follow-ons are now explicitly planned for:
+- Phase 5 (UI-first math presentation overhaul) is now explicitly planned for:
   - matrix-grid/LaTeX-forward math presentation upgrades beyond token-level typography
   - native polynomial/matrix-space element entry editors
   - explicit REF/RREF panel visibility for elimination workflows
+- Phase 6 is now Orthogonality and least squares.
+- Phase 7 is now Advanced topics.
 - Remaining rows in this matrix that target later phases (theory depth, orthogonality, and advanced topics) remain intentionally in-progress.
 
 ---
@@ -75,8 +77,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 ### Abstract vector spaces
 - polynomial spaces `P_n(F)` represented by basis - Exact/Both - Phase 4 (preset templates complete)
 - matrix spaces as vector spaces - Exact/Both - Phase 4 (preset templates complete)
-- direct polynomial element entry (coefficient-form editor) - Exact/Both - Phase 5+ spaces expansion
-- direct matrix-space element entry (matrix-object editor) - Exact/Both - Phase 5+ spaces expansion
+- direct polynomial element entry (coefficient-form editor) - Exact/Both - Phase 5 (UI overhaul)
+- direct matrix-space element entry (matrix-object editor) - Exact/Both - Phase 5 (UI overhaul)
 - function spaces represented through finite-dimensional chosen bases - Numeric/Exact depending basis - Later in spaces/orthogonality expansion
 
 ### Linear maps / operators
@@ -93,7 +95,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | vector addition | Operate | Both | Core MVP |
 | scalar multiplication | Operate | Both | Core MVP |
 | matrix-vector product | Operate | Both | Core MVP |
-| dot product | Operate / Orthogonality | Both | Orthogonality |
+| dot product | Operate / Orthogonality | Both | Phase 6 (Orthogonality) |
 | linear combinations | Operate / Spaces | Both | Core MVP / Spaces |
 
 ---
@@ -122,7 +124,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | elementary row operations | Solve | Exact/Both | Core MVP |
 | REF | Solve | Exact/Both | Core MVP |
 | RREF | Solve | Exact/Both | Core MVP |
-| explicit REF/RREF matrix panels in result UI | Solve / Analyze | Exact/Both | Phase 5+ UX follow-on |
+| explicit REF/RREF matrix panels in result UI | Solve / Analyze | Exact/Both | Phase 5 (UI overhaul) |
 | Gaussian elimination | Solve | Exact/Both | Core MVP |
 | Gauss-Jordan elimination | Solve | Exact/Both | Core MVP |
 | analyze number of solutions | Solve | Exact/Both | Core MVP |
@@ -159,7 +161,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | determinant definition/explanation | Analyze | Both | Core MVP |
 | minors and cofactors | Analyze | Exact | Core MVP |
 | cofactor expansion | Analyze | Exact | Core MVP |
-| permutation formula | Analyze advanced | Exact | Advanced |
+| permutation formula | Analyze advanced | Exact | Phase 7 (Advanced topics) |
 | determinant via elimination | Analyze | Both | Core MVP |
 | multiplicativity theorem | Analyze explanation/tests | Both | Core MVP |
 | invertibility test by determinant | Analyze | Both | Core MVP |
@@ -289,8 +291,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| minimal polynomial | Analyze / Eigen and canonical forms | Exact first | Advanced |
-| Jordan canonical form | Analyze / Eigen and canonical forms | Exact first | Advanced |
+| minimal polynomial | Analyze / Eigen and canonical forms | Exact first | Phase 7 (Advanced topics) |
+| Jordan canonical form | Analyze / Eigen and canonical forms | Exact first | Phase 7 (Advanced topics) |
 
 ---
 
@@ -298,14 +300,14 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| inner product definition | Orthogonality | Both | Orthogonality |
-| standard inner product on `R^n` | Orthogonality / Operate | Both | Orthogonality |
-| standard Hermitian product on `C^n` | Orthogonality | Numeric/Both | Orthogonality |
+| inner product definition | Orthogonality | Both | Phase 6 (Orthogonality) |
+| standard inner product on `R^n` | Orthogonality / Operate | Both | Phase 6 (Orthogonality) |
+| standard Hermitian product on `C^n` | Orthogonality | Numeric/Both | Phase 6 (Orthogonality) |
 | integral-based product on basis-defined function spaces | Orthogonality advanced | Depends on representation | Later |
-| Frobenius inner product | Orthogonality / Analyze | Both | Orthogonality |
-| induced norm | Orthogonality | Both | Orthogonality |
-| Cauchy-Schwarz | Explanation / checks | Both | Orthogonality |
-| triangle inequality | Explanation / checks | Both | Orthogonality |
+| Frobenius inner product | Orthogonality / Analyze | Both | Phase 6 (Orthogonality) |
+| induced norm | Orthogonality | Both | Phase 6 (Orthogonality) |
+| Cauchy-Schwarz | Explanation / checks | Both | Phase 6 (Orthogonality) |
+| triangle inequality | Explanation / checks | Both | Phase 6 (Orthogonality) |
 
 ---
 
@@ -313,13 +315,13 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| orthogonality test | Orthogonality | Both | Orthogonality |
-| orthonormal set/basis | Orthogonality | Both | Orthogonality |
-| Fourier coefficients | Orthogonality | Both | Orthogonality |
-| projection onto vector | Orthogonality | Both | Orthogonality |
-| Gram-Schmidt | Orthogonality | Both | Orthogonality |
-| projection onto subspace | Orthogonality | Both | Orthogonality |
-| orthogonal complement | Orthogonality | Both | Orthogonality |
+| orthogonality test | Orthogonality | Both | Phase 6 (Orthogonality) |
+| orthonormal set/basis | Orthogonality | Both | Phase 6 (Orthogonality) |
+| Fourier coefficients | Orthogonality | Both | Phase 6 (Orthogonality) |
+| projection onto vector | Orthogonality | Both | Phase 6 (Orthogonality) |
+| Gram-Schmidt | Orthogonality | Both | Phase 6 (Orthogonality) |
+| projection onto subspace | Orthogonality | Both | Phase 6 (Orthogonality) |
+| orthogonal complement | Orthogonality | Both | Phase 6 (Orthogonality) |
 
 ---
 
@@ -327,8 +329,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| least-squares solution | Orthogonality / Analyze | Numeric first | Orthogonality |
-| projection interpretation | Orthogonality explanation | Both | Orthogonality |
+| least-squares solution | Orthogonality / Analyze | Numeric first | Phase 6 (Orthogonality) |
+| projection interpretation | Orthogonality explanation | Both | Phase 6 (Orthogonality) |
 
 ---
 
@@ -336,14 +338,25 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| PageRank demo | Advanced / Examples | Numeric | Advanced |
-| SVD and PCA | Advanced / Applied | Numeric | Advanced |
-| FEM examples | Advanced / Examples | Numeric | Advanced |
+| PageRank demo | Advanced / Examples | Numeric | Phase 7 (Advanced topics) |
+| SVD and PCA | Advanced / Applied | Numeric | Phase 7 (Advanced topics) |
+| FEM examples | Advanced / Examples | Numeric | Phase 7 (Advanced topics) |
 
 
 ---
 
-## 22. Library, persistence, and sync
+## 22. Result presentation and formatting
+
+| Feature | Surface | Mode | Milestone |
+|---|---|---:|---|
+| structured matrix rendering (grid/bracket object view) | Solve / Analyze / Operate / Spaces | Both | Phase 5 (UI overhaul) |
+| structured vector/polynomial object rendering | Solve / Analyze / Operate / Spaces | Both | Phase 5 (UI overhaul) |
+| copy/export as LaTeX-ready math objects | Result actions / Library export | Both | Phase 5 (UI overhaul) |
+| object-aware result layout (answer/diagnostics/steps cards) | Shared result surfaces | Both | Phase 5 (UI overhaul) |
+
+---
+
+## 23. Library, persistence, and sync
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|

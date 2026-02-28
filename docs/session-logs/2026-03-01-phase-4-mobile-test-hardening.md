@@ -35,6 +35,7 @@ Phase 4 post-checkpoint hardening: remove residual mobile UI test launch flakine
 ## Risks / open questions
 - No remaining Phase 4 infra risk from known simulator preflight-busy/launcher transient failures when running through the wrapper script.
 - Simulator-level instability can still occur from Xcode/runtime issues outside app logic; wrapper mitigates known transient signatures with one reset retry.
+- Roadmap sequencing noted in this session was later superseded by `2026-03-01-phase-5-ui-overhaul-resequence.md`, which makes Phase 5 a UI-first math presentation overhaul.
 
 ## Next recommended step
-Begin Phase 5 implementation planning with explicit checkpoints for orthogonality workflows plus the newly documented Phase 5+ result/input UX follow-ons.
+Begin Phase 5 UI-overhaul checkpoint planning per `docs/tasks/TASK-0014-phase-5-ui-first-math-presentation-overhaul.md`.

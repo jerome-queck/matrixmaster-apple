@@ -106,6 +106,8 @@ Provide:
 - ordered basis editor
 - basis naming support
 - coordinate view where needed
+- native polynomial-space entry
+- native matrix-space entry
 
 ## Result views
 
@@ -125,6 +127,13 @@ Every result page should follow this order:
 - eigenvalue set
 - decomposition form
 - projection vector
+
+### Phase 5 UI-overhaul priorities
+- render matrix and vector outputs as structured objects (grid/bracket views), not plain text paragraphs
+- render polynomial objects with coefficient-aware formatting rather than generic token strings
+- expose REF/RREF matrices as explicit result panels in elimination workflows
+- keep a consistent card structure for answer, diagnostics, reuse actions, and steps across all destinations
+- support copy/export as plain text, markdown, and LaTeX-ready formats from the same result object model
 
 ### Diagnostics examples
 - exact vs approximate

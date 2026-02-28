@@ -72,6 +72,9 @@ Cover:
 - sync-aware Library actions and recovery flows
 - Spaces preset application flows (polynomial and matrix-space templates)
 - linear-map similarity diagnostics for both endomorphism and non-endomorphism inputs
+- structured matrix/vector/polynomial result rendering flows
+- REF/RREF result-panel visibility and reuse actions for elimination workflows
+- copy/export format parity checks for plain text, markdown, and LaTeX-ready output
 
 ### 7. UI tests
 Cover:
@@ -82,6 +85,8 @@ Cover:
 - larger text layout sanity for common tasks
 - sync status visibility in Library and relevant item detail surfaces
 - simulator launch resilience for mobile UI runs (retry or reset when preflight-busy launch faults occur)
+- matrix-looking result layout fidelity across iPhone, iPad, and Mac
+- accessibility labels and reading order for structured math object cards
 
 ## Test fixture design
 

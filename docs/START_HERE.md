@@ -118,5 +118,7 @@ Current status:
 - Coordinate-family diagnostics now include full multi-solution parameterizations with every nullspace basis direction reused as payload output.
 - Similarity diagnostics now include explicit not-applicable guidance when linear-map input is not an endomorphism.
 - Result surfaces now apply baseline math typography rendering for exponent, subscript, and fraction notation in answers, diagnostics, and steps.
-- Phase 5 (Orthogonality and least squares) is the next implementation phase.
+- Phase 5 (UI-first math presentation overhaul) is the next implementation phase.
+- Phase 6 is now Orthogonality and least squares.
+- Phase 7 is now Advanced topics.
 - Library now includes persistence-backed vector save/load/delete, history logging, JSON export baseline, and sync-state-aware local-first write tracking.

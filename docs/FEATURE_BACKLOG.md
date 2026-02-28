@@ -1,6 +1,7 @@
 # Feature backlog
 
-These features are valid future work but should not block the core build.
+This file tracks future work beyond the current completed checkpoint.
+Some items are explicitly scheduled for the next phase, while others remain later backlog.
 
 ## Phase transition carry-over (completed)
 - Completed in Phase 4:
@@ -8,7 +9,7 @@ These features are valid future work but should not block the core build.
   - math typography baseline across result surfaces (consistent superscript/subscript/fraction rendering in answer, diagnostics, and steps)
   - abstract-space presets for Spaces workflows (polynomial-space and matrix-space templates, including direct apply actions for generating sets)
 
-## Phase 5+ UX and input follow-ons
+## Phase 5 UI-first overhaul scope
 - structured matrix rendering in result surfaces (matrix brackets/grid layout instead of plain inline text)
 - LaTeX-ready copy/export formatting for matrix/vector/polynomial result objects
 - explicit REF/RREF matrix panels for Solve and elimination-backed Analyze outputs

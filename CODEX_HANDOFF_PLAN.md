@@ -101,8 +101,9 @@ Codex must execute work in the following order:
 6. add persistence, export, history, and cloud sync
 7. add the vector-space / basis layer
 8. add linear transformations and change-of-basis workflows
-9. add orthogonality, projections, and least squares
-10. add advanced exact and applied topics later
+9. run a UI-first math presentation overhaul (typeset-style rendering, structured matrix views, LaTeX-ready output, REF/RREF panels, richer abstract-space editors)
+10. add orthogonality, projections, and least squares
+11. add advanced exact and applied topics later
 
 Codex should not jump ahead to Jordan form, PCA, plugin systems, or sparse iterative solvers before the core workflows are solid.
 
@@ -400,7 +401,22 @@ Build:
 **Acceptance gate**
 - the app supports both concrete matrix work and abstract linear maps coherently
 
-### Milestone E - Orthogonality and least squares
+### Milestone E - UI-first math presentation overhaul
+Build:
+
+- structured matrix/vector/polynomial rendering as first-class result objects
+- matrix-looking result cards (grid/bracket rendering rather than plain text blocks)
+- explicit REF/RREF panels for Solve and elimination-backed Analyze results
+- LaTeX-ready copy/export for displayable math objects
+- native polynomial-space and matrix-space element editors
+- cross-platform accessibility/performance checks for the richer rendering stack
+
+**Acceptance gate**
+- key result surfaces read as math objects rather than plain text dumps
+- users can copy/export representative results in LaTeX-ready form
+- row-reduction workflows expose explicit REF/RREF matrices directly
+
+### Milestone F - Orthogonality and least squares
 Build:
 
 - inner products
@@ -417,7 +433,7 @@ Build:
 - least squares is numerically stable
 - complex conjugation is handled correctly where applicable
 
-### Milestone F - Advanced exact and applied topics
+### Milestone G - Advanced exact and applied topics
 Only after the above are solid:
 
 - minimal polynomial

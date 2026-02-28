@@ -8,7 +8,7 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 
 ---
 
-## Current status (2026-02-28)
+## Current status (2026-03-01)
 
 - Phase 0 complete.
 - Phase 1 complete.
@@ -18,7 +18,9 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - Phase 3 checkpoint 2 is complete: Analyze now supports span membership, independence/dependence, and coordinate-vector workflows with witness certificates in exact and numeric modes.
 - Phase 3 checkpoint 3 is complete: dedicated Spaces workflows now cover basis testing/extraction, basis extension/pruning, and subspace sum/intersection/direct-sum helpers in exact and numeric modes, with coordinate-family diagnostics expanded for non-unique coordinate solutions.
 - Phase 4 (Linear maps and basis changes) is complete.
-- Phase 5 (Orthogonality and least squares) is next.
+- Phase 5 (UI-first math presentation overhaul) is next.
+- Phase 6 (Orthogonality and least squares) follows Phase 5.
+- Phase 7 (Advanced topics) follows Phase 6.
 
 ---
 
@@ -189,7 +191,42 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 
 ---
 
-## Phase 5 - Orthogonality and least squares
+## Phase 5 - UI-first math presentation overhaul
+
+### Goals
+- make math output look like math objects instead of plain text blocks
+- deliver structured rendering for matrix/vector/polynomial result payloads
+- add LaTeX-ready copy/export formatting for displayable math objects
+- expose explicit REF/RREF matrix panels in Solve and elimination-backed Analyze workflows
+- ship Spaces editor UX v2:
+  - native polynomial-space element entry (coefficient-form over `{1, x, x^2, ...}`)
+  - native matrix-space element entry/editing while preserving coordinate-vector internals
+- standardize result information architecture:
+  - answer object
+  - diagnostics object
+  - optional derivation/steps object
+- preserve accessibility/performance parity on iPhone, iPad, and Mac while introducing richer rendering
+
+### Checkpoint intent
+- checkpoint 1:
+  - shared structured math object renderer (matrix grid, vector stack, polynomial coefficient view)
+  - result-surface component migration from plain-text blocks to object-aware views
+- checkpoint 2:
+  - Solve/Analyze REF/RREF object panels with reuse actions
+  - copy/export modes (`plain`, `markdown`, `latex`) from rendered objects
+- checkpoint 3:
+  - Spaces native polynomial/matrix-space element editors
+  - validation and parsing UX tailored to polynomial/matrix object entry
+
+### Exit criteria
+- major result surfaces render matrix/vector/polynomial outputs as structured math objects
+- users can copy/export key objects in LaTeX-ready format
+- Solve/Analyze row-reduction workflows expose explicit REF/RREF matrix views
+- spaces workflows support direct polynomial/matrix-style element entry in addition to basis presets
+
+---
+
+## Phase 6 - Orthogonality and least squares
 
 ### Goals
 - inner products
@@ -202,22 +239,12 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - orthogonal complements
 - least squares
 
-### Planned Phase 5+ UX follow-ons
-- structured math rendering phase 2:
-  - display matrix-valued results in bracketed grid form instead of plain inline text
-  - add LaTeX-ready copy/export formatting for matrix/vector/polynomial result objects
-- row-reduction visibility phase 2:
-  - expose explicit REF/RREF matrix panels in Solve (and elimination-backed Analyze outputs) instead of steps-only traces
-- spaces input phase 2:
-  - add native polynomial-entry editors (for example coefficient-form input over `{1, x, x^2, ...}`)
-  - add native matrix-space element entry/editing views while preserving basis-coordinate computation under the hood
-
 ### Exit criteria
 - projection and least squares workflows are clear, stable, and reusable
 
 ---
 
-## Phase 6 - Advanced topics
+## Phase 7 - Advanced topics
 
 ### Goals
 - minimal polynomial
@@ -259,11 +286,12 @@ Ship after Phase 2 with:
 - sync foundation visible enough to shake out account/offline bugs early
 
 ### Beta
-Ship after Phase 5 with:
+Ship after Phase 6 with:
+- UI-first math presentation overhaul
 - spaces and bases
 - transformations
 - orthogonality and least squares
 - cross-device sync behavior stable enough for normal use
 
 ### Advanced/study expansion
-Ship Phase 6 later as targeted expansions rather than blocking the main product
+Ship Phase 7 later as targeted expansions rather than blocking the main product
