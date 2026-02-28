@@ -9,6 +9,13 @@ final class MatrixMasterMobileUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["mobile-root-tab-view"].waitForExistence(timeout: 3))
+    }
+
+    func testSolveSurfaceExposesAccessibleMatrixCellLabel() {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.textFields["Matrix entry row 1 column 1"].waitForExistence(timeout: 3))
     }
 }

@@ -48,5 +48,6 @@ struct MacRootView: View {
         .pickerStyle(.segmented)
         .frame(width: 220)
         .accessibilityIdentifier("mac-mode-picker")
+        .accessibilityLabel("Math mode")
     }
 }

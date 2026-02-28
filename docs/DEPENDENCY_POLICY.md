@@ -42,6 +42,12 @@ Avoid adding dependencies for:
 - persistence wrappers over SwiftData
 - math libraries that duplicate Accelerate-backed numeric work without clear benefit
 
+## Current approved dependency ledger (Milestone A)
+
+- External SPM dependencies currently in use: none.
+- Approved BigInt dependency budget remains reserved for exact-engine expansion and has not yet been consumed.
+- Foundation packages and app shells currently rely on Apple frameworks + internal packages only.
+
 ## Rules for dependency use
 
 - keep the list minimal

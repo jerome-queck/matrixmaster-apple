@@ -36,6 +36,7 @@ For the first public release, both app shells must expose the same core workflow
 Owns:
 - scalar domain descriptors
 - matrix/vector data types
+- matrix/vector/basis draft input models and validation contracts
 - basis and subspace types
 - linear map types
 - result and step models
@@ -73,6 +74,7 @@ Owns:
 - recent items and library metadata
 - sync metadata, change journals, and conflict recovery policy
 - private-cloud replication services for eligible user data
+- baseline file-backed snapshot stores and sync coordinator contracts, including durable local sync-state snapshots
 
 #### `MatrixUI`
 Owns:
@@ -85,6 +87,7 @@ Owns:
 - empty states
 - accessibility helper wrappers
 - reusable sync status components where needed
+- shared validation feedback primitives for editor flows
 
 #### `MatrixFeatures`
 Owns:
@@ -182,6 +185,16 @@ Each feature should expose:
 - sync/recovery affordances where persisted user data is involved
 
 Do not let one feature reach directly into another feature's private implementation.
+
+## Result reuse mechanism (Milestone A plan)
+
+Result reuse is planned as a first-class cross-feature path:
+- computations emit typed reusable payloads (matrix, vector, basis, decomposition metadata)
+- a reuse router maps payload kinds to destination-prefilled requests (Solve/Operate/Analyze/Library)
+- feature modules expose payload adapters instead of directly mutating each other's state
+- persistence can promote reusable payloads into named library records without re-entry
+
+Milestone A keeps this as architecture + UX contract; Milestone B implements the first concrete reuse adapters and flows.
 
 ## Concurrency model
 

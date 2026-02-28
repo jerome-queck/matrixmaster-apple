@@ -45,5 +45,6 @@ struct MobileRootView: View {
         .pickerStyle(.segmented)
         .frame(maxWidth: 220)
         .accessibilityIdentifier("mobile-mode-picker")
+        .accessibilityLabel("Math mode")
     }
 }

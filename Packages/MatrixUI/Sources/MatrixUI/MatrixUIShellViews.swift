@@ -43,19 +43,9 @@ public struct MatrixMasterDestinationPlaceholder: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(cardBackgroundColor)
+                .fill(MatrixUIDesignTokens.ColorPalette.cardBackground)
         )
         .accessibilityIdentifier("destination-placeholder-\(destination.rawValue)")
-    }
-
-    private var cardBackgroundColor: Color {
-        #if os(iOS) || os(tvOS) || os(visionOS)
-        return Color(uiColor: .secondarySystemBackground)
-        #elseif os(macOS)
-        return Color(nsColor: .windowBackgroundColor)
-        #else
-        return Color.gray.opacity(0.12)
-        #endif
     }
 }
 
@@ -71,7 +61,7 @@ public struct MatrixMasterSyncBadge: View {
             .font(.caption)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(badgeBackgroundColor))
+            .background(Capsule().fill(MatrixUIDesignTokens.ColorPalette.controlBackground))
             .accessibilityIdentifier("sync-state-\(state.rawValue)")
     }
 
@@ -88,13 +78,4 @@ public struct MatrixMasterSyncBadge: View {
         }
     }
 
-    private var badgeBackgroundColor: Color {
-        #if os(iOS) || os(tvOS) || os(visionOS)
-        return Color(uiColor: .tertiarySystemBackground)
-        #elseif os(macOS)
-        return Color(nsColor: .controlBackgroundColor)
-        #else
-        return Color.gray.opacity(0.2)
-        #endif
-    }
 }

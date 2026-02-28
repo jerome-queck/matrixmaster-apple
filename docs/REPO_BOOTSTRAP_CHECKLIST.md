@@ -3,28 +3,28 @@
 Use this as the build-from-zero startup checklist.
 
 ## Documentation bootstrap
-- [ ] create `instructions.md`
-- [ ] create `README.md`
-- [ ] create `CODEX_HANDOFF_PLAN.md`
-- [ ] create `BOOTSTRAP_PROMPT_FOR_CODEX.md`
-- [ ] create all required files under `docs/`
-- [ ] create ADRs 0001 through 0005
-- [ ] create template files
-- [ ] create local `instructions.md` files under `Apps/` and `Packages/`
+- [x] create `instructions.md`
+- [x] create `README.md`
+- [x] create `CODEX_HANDOFF_PLAN.md`
+- [x] create `BOOTSTRAP_PROMPT_FOR_CODEX.md`
+- [x] create all required files under `docs/`
+- [x] create ADRs 0001 through 0005
+- [x] create template files
+- [x] create local `instructions.md` files under `Apps/` and `Packages/`
 
 ## Workspace bootstrap
 - [x] create Xcode workspace
 - [x] create mobile app shell
 - [x] create Mac app shell
 - [x] create internal package structure
-- [ ] register the native `.mmws` workspace type and versioning plan
-- [ ] plan or enable the private-cloud sync capability path
-- [ ] verify clean build on iPhone, iPad, and Mac
+- [x] register the native `.mmws` workspace type and versioning plan
+- [x] plan or enable the private-cloud sync capability path
+- [x] verify clean build on iPhone, iPad, and Mac
 
 ## Foundation bootstrap
-- [ ] create design token layer
-- [ ] create matrix editor primitives
-- [ ] create vector/basis editor primitives
+- [x] create design token layer
+- [x] create matrix editor primitives
+- [x] create vector/basis editor primitives
 - [x] create domain models
 - [x] create result/step models
 - [x] create persistence shell
@@ -33,16 +33,16 @@ Use this as the build-from-zero startup checklist.
 
 ## Quality bootstrap
 - [x] configure tests
-- [ ] add baseline fixtures
+- [x] add baseline fixtures
 - [x] add first UI smoke tests
 - [x] add persistence round-trip tests
-- [ ] add first sync/offline state tests with mocks or fixtures
-- [ ] verify accessibility labels on shell
-- [ ] document any approved dependencies
+- [x] add first sync/offline state tests with mocks or fixtures
+- [x] verify accessibility labels on shell
+- [x] document any approved dependencies
 
 ## Milestone readiness
-- [ ] foundation is stable enough for Solve
-- [ ] result reuse mechanism is planned
-- [ ] first-public-release parity across iPhone, iPad, and Mac is planned explicitly
-- [ ] cloud sync and local-fallback behavior are planned explicitly
-- [ ] docs and code structures agree
+- [x] foundation is stable enough for Solve
+- [x] result reuse mechanism is planned
+- [x] first-public-release parity across iPhone, iPad, and Mac is planned explicitly
+- [x] cloud sync and local-fallback behavior are planned explicitly
+- [x] docs and code structures agree

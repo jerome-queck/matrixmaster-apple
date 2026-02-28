@@ -109,6 +109,13 @@ Recommended v1 decision:
 - payload shape: versioned JSON document, optionally compressible later if size demands it
 - compatibility note: if legacy `.mmatrix` import is ever added, treat it as a compatibility importer only, not the canonical native format
 
+Current foundation baseline:
+- `MatrixWorkspaceDocument` defines v1 schema/version constants
+- `JSONWorkspaceDocumentCodec` provides baseline JSON encode/decode behavior
+- `FileWorkspaceSnapshotStore` provides local file-backed latest-snapshot persistence for shell state
+- `WorkspaceSyncSnapshot` and `FileWorkspaceSyncCoordinator` provide durable local sync-state tracking for pending writes and cloud-availability status
+- persistence/sync shell operations surface explicit errors instead of silently swallowing failures
+
 For v1, keep single-object exports interoperable rather than inventing a custom extension for every object type:
 - JSON for structured objects
 - CSV / TSV for tabular matrices/vectors

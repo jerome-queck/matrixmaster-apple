@@ -11,4 +11,11 @@ final class MatrixMasterMacUITests: XCTestCase {
 
         XCTAssertTrue(app.windows.firstMatch.waitForExistence(timeout: 3))
     }
+
+    func testShellExposesAccessibilityIdentifiers() {
+        let app = XCUIApplication()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["run-sample-solve"].waitForExistence(timeout: 3))
+    }
 }

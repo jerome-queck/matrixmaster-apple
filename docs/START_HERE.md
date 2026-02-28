@@ -96,11 +96,11 @@ Do not call a feature done unless:
 
 ## Start order checklist
 
-- [ ] create root docs and local instructions files
-- [ ] create workspace and packages
-- [ ] create design system and app shell
-- [ ] create local persistence and sync foundations
-- [ ] build editors and shared result views
-- [ ] ship milestone A
+- [x] create root docs and local instructions files
+- [x] create workspace and packages
+- [x] create design system and app shell
+- [x] create local persistence and sync foundations
+- [x] build editors and shared result views
+- [x] ship milestone A
 - [ ] ship milestone B
 - [ ] continue through roadmap
