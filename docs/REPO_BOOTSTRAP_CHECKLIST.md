@@ -13,10 +13,10 @@ Use this as the build-from-zero startup checklist.
 - [ ] create local `instructions.md` files under `Apps/` and `Packages/`
 
 ## Workspace bootstrap
-- [ ] create Xcode workspace
-- [ ] create mobile app shell
-- [ ] create Mac app shell
-- [ ] create internal package structure
+- [x] create Xcode workspace
+- [x] create mobile app shell
+- [x] create Mac app shell
+- [x] create internal package structure
 - [ ] register the native `.mmws` workspace type and versioning plan
 - [ ] plan or enable the private-cloud sync capability path
 - [ ] verify clean build on iPhone, iPad, and Mac
@@ -25,17 +25,17 @@ Use this as the build-from-zero startup checklist.
 - [ ] create design token layer
 - [ ] create matrix editor primitives
 - [ ] create vector/basis editor primitives
-- [ ] create domain models
-- [ ] create result/step models
-- [ ] create persistence shell
-- [ ] create sync state models/coordinator contracts
-- [ ] create navigation shell
+- [x] create domain models
+- [x] create result/step models
+- [x] create persistence shell
+- [x] create sync state models/coordinator contracts
+- [x] create navigation shell
 
 ## Quality bootstrap
-- [ ] configure tests
+- [x] configure tests
 - [ ] add baseline fixtures
-- [ ] add first UI smoke tests
-- [ ] add persistence round-trip tests
+- [x] add first UI smoke tests
+- [x] add persistence round-trip tests
 - [ ] add first sync/offline state tests with mocks or fixtures
 - [ ] verify accessibility labels on shell
 - [ ] document any approved dependencies
