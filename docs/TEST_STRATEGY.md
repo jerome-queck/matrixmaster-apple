@@ -70,6 +70,8 @@ Cover:
 - exporting selected outputs
 - reopening a saved workspace
 - sync-aware Library actions and recovery flows
+- Spaces preset application flows (polynomial and matrix-space templates)
+- linear-map similarity diagnostics for both endomorphism and non-endomorphism inputs
 
 ### 7. UI tests
 Cover:
@@ -103,6 +105,8 @@ Useful invariants:
 - projection idempotence where relevant
 - orthonormal outputs have unit norm and pairwise orthogonality
 - change-of-basis round trips recover original coordinates
+- basis-change similarity preserves trace and determinant for endomorphisms
+- non-endomorphism linear-map inputs report similarity as not applicable with explicit diagnostics
 
 ## Golden step traces
 

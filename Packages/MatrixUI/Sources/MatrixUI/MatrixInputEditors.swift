@@ -452,9 +452,14 @@ public struct OperateConfigurationView: View {
 
 public struct AnalyzeConfigurationView: View {
     @Binding public var analyzeKind: MatrixAnalyzeKind
+    @Binding public var linearMapDefinitionKind: MatrixLinearMapDefinitionKind
 
-    public init(analyzeKind: Binding<MatrixAnalyzeKind>) {
+    public init(
+        analyzeKind: Binding<MatrixAnalyzeKind>,
+        linearMapDefinitionKind: Binding<MatrixLinearMapDefinitionKind>
+    ) {
         self._analyzeKind = analyzeKind
+        self._linearMapDefinitionKind = linearMapDefinitionKind
     }
 
     public var body: some View {
@@ -469,6 +474,16 @@ public struct AnalyzeConfigurationView: View {
             }
             .pickerStyle(.menu)
             .accessibilityIdentifier("analyze-kind-picker")
+
+            if analyzeKind == .linearMaps {
+                Picker("Linear map definition", selection: $linearMapDefinitionKind) {
+                    ForEach(MatrixLinearMapDefinitionKind.allCases, id: \.self) { kind in
+                        Text(kind.title).tag(kind)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("linear-map-definition-picker")
+            }
         }
         .padding(MatrixUIDesignTokens.Spacing.regular)
         .background(
@@ -480,9 +495,35 @@ public struct AnalyzeConfigurationView: View {
 
 public struct SpacesConfigurationView: View {
     @Binding public var spacesKind: MatrixSpacesKind
+    @Binding public var spacesPresetKind: MatrixSpacesPresetKind
+    @Binding public var polynomialDegree: Int
+    @Binding public var matrixSpaceRows: Int
+    @Binding public var matrixSpaceColumns: Int
+    public var showsSecondaryApplyActions: Bool
+    public var onApplyPrimaryPreset: (() -> Void)?
+    public var onApplySecondaryPreset: (() -> Void)?
+    public var onApplyBothPresets: (() -> Void)?
 
-    public init(spacesKind: Binding<MatrixSpacesKind>) {
+    public init(
+        spacesKind: Binding<MatrixSpacesKind>,
+        spacesPresetKind: Binding<MatrixSpacesPresetKind> = .constant(.none),
+        polynomialDegree: Binding<Int> = .constant(2),
+        matrixSpaceRows: Binding<Int> = .constant(2),
+        matrixSpaceColumns: Binding<Int> = .constant(2),
+        showsSecondaryApplyActions: Bool = false,
+        onApplyPrimaryPreset: (() -> Void)? = nil,
+        onApplySecondaryPreset: (() -> Void)? = nil,
+        onApplyBothPresets: (() -> Void)? = nil
+    ) {
         self._spacesKind = spacesKind
+        self._spacesPresetKind = spacesPresetKind
+        self._polynomialDegree = polynomialDegree
+        self._matrixSpaceRows = matrixSpaceRows
+        self._matrixSpaceColumns = matrixSpaceColumns
+        self.showsSecondaryApplyActions = showsSecondaryApplyActions
+        self.onApplyPrimaryPreset = onApplyPrimaryPreset
+        self.onApplySecondaryPreset = onApplySecondaryPreset
+        self.onApplyBothPresets = onApplyBothPresets
     }
 
     public var body: some View {
@@ -497,12 +538,63 @@ public struct SpacesConfigurationView: View {
             }
             .pickerStyle(.menu)
             .accessibilityIdentifier("spaces-kind-picker")
+
+            Picker("Abstract-space preset", selection: $spacesPresetKind) {
+                ForEach(MatrixSpacesPresetKind.allCases, id: \.self) { kind in
+                    Text(kind.title).tag(kind)
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("spaces-preset-picker")
+
+            switch spacesPresetKind {
+            case .none:
+                EmptyView()
+            case .polynomialSpace:
+                Stepper(value: $polynomialDegree, in: 0...8) {
+                    Text("Polynomial degree n: \(polynomialDegree) (P_n)")
+                }
+                .accessibilityIdentifier("spaces-polynomial-degree-stepper")
+            case .matrixSpace:
+                Stepper(value: $matrixSpaceRows, in: 1...5) {
+                    Text("Matrix-space rows m: \(matrixSpaceRows)")
+                }
+                .accessibilityIdentifier("spaces-matrix-rows-stepper")
+
+                Stepper(value: $matrixSpaceColumns, in: 1...5) {
+                    Text("Matrix-space columns n: \(matrixSpaceColumns)")
+                }
+                .accessibilityIdentifier("spaces-matrix-columns-stepper")
+            }
+
+            if spacesPresetKind != .none {
+                HStack(spacing: MatrixUIDesignTokens.Spacing.compact) {
+                    if let onApplyPrimaryPreset {
+                        editorButton("Apply Preset to U", action: onApplyPrimaryPreset)
+                            .accessibilityIdentifier("spaces-apply-preset-u")
+                    }
+                    if showsSecondaryApplyActions, let onApplySecondaryPreset {
+                        editorButton("Apply Preset to W", action: onApplySecondaryPreset)
+                            .accessibilityIdentifier("spaces-apply-preset-w")
+                    }
+                    if showsSecondaryApplyActions, let onApplyBothPresets {
+                        editorButton("Apply Preset to U and W", action: onApplyBothPresets)
+                            .accessibilityIdentifier("spaces-apply-preset-both")
+                    }
+                }
+            }
         }
         .padding(MatrixUIDesignTokens.Spacing.regular)
         .background(
             RoundedRectangle(cornerRadius: MatrixUIDesignTokens.CornerRadius.card)
                 .fill(MatrixUIDesignTokens.ColorPalette.cardBackground)
         )
+    }
+
+    private func editorButton(_ label: String, action: @escaping () -> Void) -> some View {
+        Button(label, action: action)
+            .buttonStyle(.bordered)
+            .lineLimit(1)
     }
 }
 
@@ -639,7 +731,7 @@ public struct BasisEditorView: View {
                 Text(title)
                     .font(MatrixUIDesignTokens.Typography.sectionTitle)
                 Spacer()
-                Text("\(basis.vectorCount) vectors")
+                Text("\(basis.vectorCount) vectors in R^\(basis.dimension)")
                     .font(MatrixUIDesignTokens.Typography.supportText)
                     .foregroundStyle(.secondary)
             }
@@ -652,6 +744,8 @@ public struct BasisEditorView: View {
             HStack(spacing: MatrixUIDesignTokens.Spacing.compact) {
                 editorButton("+ Vector") { basis.addVector() }
                 editorButton("- Vector") { basis.removeLastVector() }
+                editorButton("+ Dim") { basis.increaseDimension() }
+                editorButton("- Dim") { basis.decreaseDimension() }
             }
 
             VStack(spacing: MatrixUIDesignTokens.Spacing.regular) {

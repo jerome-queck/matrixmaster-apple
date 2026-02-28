@@ -11,6 +11,14 @@ public enum MatrixNumericEngineError: Error, Equatable, LocalizedError {
     case analyzeRequiresTargetVector
     case analyzeBasisDimensionMismatch(expected: Int, actual: Int, vectorIndex: Int)
     case analyzeTargetDimensionMismatch(expected: Int, actual: Int)
+    case linearMapsRequiresSecondaryBasisVectors
+    case linearMapsRequiresSecondaryMatrix
+    case linearMapsDomainBasisMustBeSquare(vectorCount: Int, dimension: Int)
+    case linearMapsCodomainBasisMustBeSquare(vectorCount: Int, dimension: Int)
+    case linearMapsDomainBasisSingular
+    case linearMapsCodomainBasisSingular
+    case linearMapsMapMatrixDimensionMismatch(expectedRows: Int, expectedColumns: Int, actualRows: Int, actualColumns: Int)
+    case linearMapsImageMatrixDimensionMismatch(expectedRows: Int, expectedColumns: Int, actualRows: Int, actualColumns: Int)
     case spacesRequiresSecondaryBasisVectors
     case spacesBasisDimensionMismatch(expected: Int, actual: Int)
     case raggedMatrixInput
@@ -39,6 +47,22 @@ public enum MatrixNumericEngineError: Error, Equatable, LocalizedError {
             return "Basis vector \(vectorIndex + 1) has dimension \(actual), expected \(expected)."
         case let .analyzeTargetDimensionMismatch(expected, actual):
             return "Target vector has dimension \(actual), expected \(expected)."
+        case .linearMapsRequiresSecondaryBasisVectors:
+            return "Linear maps workflow requires a secondary basis."
+        case .linearMapsRequiresSecondaryMatrix:
+            return "Linear maps workflow requires an image matrix when defining by basis images."
+        case let .linearMapsDomainBasisMustBeSquare(vectorCount, dimension):
+            return "Domain basis must be square: received \(vectorCount) vectors in R^\(dimension)."
+        case let .linearMapsCodomainBasisMustBeSquare(vectorCount, dimension):
+            return "Codomain basis must be square: received \(vectorCount) vectors in R^\(dimension)."
+        case .linearMapsDomainBasisSingular:
+            return "Domain basis vectors are dependent at tolerance; domain basis matrix is not invertible."
+        case .linearMapsCodomainBasisSingular:
+            return "Codomain basis vectors are dependent at tolerance; codomain basis matrix is not invertible."
+        case let .linearMapsMapMatrixDimensionMismatch(expectedRows, expectedColumns, actualRows, actualColumns):
+            return "Map matrix dimensions are \(actualRows)x\(actualColumns), expected \(expectedRows)x\(expectedColumns)."
+        case let .linearMapsImageMatrixDimensionMismatch(expectedRows, expectedColumns, actualRows, actualColumns):
+            return "Image matrix dimensions are \(actualRows)x\(actualColumns), expected \(expectedRows)x\(expectedColumns)."
         case .spacesRequiresSecondaryBasisVectors:
             return "This Spaces workflow requires a secondary generating set."
         case let .spacesBasisDimensionMismatch(expected, actual):
@@ -219,6 +243,8 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             return try analyzeNumericIndependence(request)
         case .coordinates:
             return try analyzeNumericCoordinates(request)
+        case .linearMaps:
+            return try analyzeNumericLinearMaps(request)
         }
 
         let matrix = try parseMatrixEntries(request.matrixEntries)
@@ -719,6 +745,7 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             diagnostics.append("Multiple coordinate candidates detected.")
             if !nullBasis.isEmpty {
                 diagnostics.append("Homogeneous direction basis: \(inlineBasis(nullBasis)).")
+                diagnostics.append("Coordinate family: \(coordinateFamilyExpression(witness: witness, directions: nullBasis)).")
             }
             payloads.append(
                 .vector(
@@ -729,27 +756,279 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
                     )
                 )
             )
-            if let relation = nullBasis.first {
+            for (directionIndex, relation) in nullBasis.enumerated() {
                 payloads.append(
                     .vector(
                         VectorReusablePayload(
-                            name: "Coordinate nullspace direction",
+                            name: "Coordinate nullspace direction \(directionIndex + 1)",
                             entries: relation.map(formatted),
-                            source: "Analyze coordinate nullspace direction"
+                            source: "Analyze coordinate nullspace direction \(directionIndex + 1)"
                         )
                     )
                 )
             }
             return MatrixMasterComputationResult(
-                answer: "Coordinate vector is not unique. One witness: \(formattedCoefficients(witness)). General form uses nullspace directions of B.",
+                answer: "Coordinate vector is not unique. One witness: \(formattedCoefficients(witness)). Family: \(coordinateFamilyExpression(witness: witness, directions: nullBasis)).",
                 diagnostics: diagnostics,
                 steps: steps + [
                     "Solved B * c = x and found free variables.",
-                    "General coordinate family: c = c0 + c_h where c_h is in Null(B)."
+                    "Built a full family parameterization from a witness plus every basis direction in Null(B)."
                 ],
                 reusablePayloads: payloads
             )
         }
+    }
+
+    private func analyzeNumericLinearMaps(
+        _ request: MatrixMasterComputationRequest
+    ) throws -> MatrixMasterComputationResult {
+        let definitionKind = request.linearMapDefinitionKind ?? .matrix
+        let tolerance = 1.0e-9
+        let domainBasis = try parseBasisVectors(from: request)
+        let codomainBasis = try parseLinearMapSecondaryBasisVectors(from: request)
+        let domainDimension = domainBasis[0].count
+        let codomainDimension = codomainBasis[0].count
+
+        guard domainBasis.count == domainDimension else {
+            throw MatrixNumericEngineError.linearMapsDomainBasisMustBeSquare(
+                vectorCount: domainBasis.count,
+                dimension: domainDimension
+            )
+        }
+        guard codomainBasis.count == codomainDimension else {
+            throw MatrixNumericEngineError.linearMapsCodomainBasisMustBeSquare(
+                vectorCount: codomainBasis.count,
+                dimension: codomainDimension
+            )
+        }
+
+        let domainBasisMatrix = matrixFromColumnVectors(domainBasis, rowCount: domainDimension)
+        let codomainBasisMatrix = matrixFromColumnVectors(codomainBasis, rowCount: codomainDimension)
+        let domainInverseSummary = inverse(of: domainBasisMatrix, tolerance: tolerance)
+        guard let domainBasisInverse = domainInverseSummary.inverse else {
+            throw MatrixNumericEngineError.linearMapsDomainBasisSingular
+        }
+        let codomainInverseSummary = inverse(of: codomainBasisMatrix, tolerance: tolerance)
+        guard let codomainBasisInverse = codomainInverseSummary.inverse else {
+            throw MatrixNumericEngineError.linearMapsCodomainBasisSingular
+        }
+
+        var steps: [String] = [
+            "Interpreted domain basis β and codomain basis γ as ordered bases.",
+            "Tolerance profile: \(formattedScientific(tolerance))."
+        ]
+        var payloads: [MatrixMasterReusablePayload] = [
+            .matrix(
+                MatrixReusablePayload(
+                    entries: stringify(domainBasisMatrix),
+                    source: "Linear maps domain basis matrix B"
+                )
+            ),
+            .matrix(
+                MatrixReusablePayload(
+                    entries: stringify(codomainBasisMatrix),
+                    source: "Linear maps codomain basis matrix G"
+                )
+            )
+        ]
+
+        let standardMatrix: [[Double]]
+        switch definitionKind {
+        case .matrix:
+            let parsedMatrix = try parseMatrixEntries(request.matrixEntries)
+            let actualRows = parsedMatrix.count
+            let actualColumns = parsedMatrix.first?.count ?? 0
+            guard actualRows == codomainDimension && actualColumns == domainDimension else {
+                throw MatrixNumericEngineError.linearMapsMapMatrixDimensionMismatch(
+                    expectedRows: codomainDimension,
+                    expectedColumns: domainDimension,
+                    actualRows: actualRows,
+                    actualColumns: actualColumns
+                )
+            }
+            standardMatrix = parsedMatrix
+            steps.append("Accepted the provided matrix A as the standard-coordinate representation of T.")
+        case .basisImages:
+            let imageMatrix = try parseSecondaryMatrixEntries(request.secondaryMatrixEntries)
+            let actualRows = imageMatrix.count
+            let actualColumns = imageMatrix.first?.count ?? 0
+            guard actualRows == codomainDimension && actualColumns == domainDimension else {
+                throw MatrixNumericEngineError.linearMapsImageMatrixDimensionMismatch(
+                    expectedRows: codomainDimension,
+                    expectedColumns: domainDimension,
+                    actualRows: actualRows,
+                    actualColumns: actualColumns
+                )
+            }
+            standardMatrix = multiply(imageMatrix, domainBasisInverse)
+            steps.append("Interpreted columns of Y as T(b_i) in standard codomain coordinates.")
+            steps.append("Computed A = Y * B^-1 to recover the standard-coordinate map matrix.")
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(imageMatrix),
+                        source: "Linear maps image matrix Y"
+                    )
+                )
+            )
+        }
+
+        let rankSummary = rank(of: standardMatrix, tolerance: tolerance)
+        let rank = rankSummary.rank
+        let nullity = max(0, domainDimension - rank)
+        let kernelBasis = nullSpaceBasis(
+            from: rankSummary.reduced,
+            pivotColumns: rankSummary.pivotColumns,
+            columnCount: domainDimension,
+            tolerance: tolerance
+        )
+        let rangeBasis = columnSpaceBasis(from: standardMatrix, pivotColumns: rankSummary.pivotColumns)
+        let injective = rank == domainDimension
+        let surjective = rank == codomainDimension
+        let bijective = injective && surjective && domainDimension == codomainDimension
+        let mapBetaGamma = multiply(codomainBasisInverse, multiply(standardMatrix, domainBasisMatrix))
+
+        payloads.append(
+            .matrix(
+                MatrixReusablePayload(
+                    entries: stringify(standardMatrix),
+                    source: "Linear maps standard matrix A"
+                )
+            )
+        )
+        payloads.append(
+            .matrix(
+                MatrixReusablePayload(
+                    entries: stringify(mapBetaGamma),
+                    source: "Linear maps [T]^beta_gamma"
+                )
+            )
+        )
+        if !kernelBasis.isEmpty {
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(matrixFromColumnVectors(kernelBasis, rowCount: domainDimension)),
+                        source: "Linear maps kernel basis (vectors as columns)"
+                    )
+                )
+            )
+        }
+        if !rangeBasis.isEmpty {
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(matrixFromColumnVectors(rangeBasis, rowCount: codomainDimension)),
+                        source: "Linear maps range basis (vectors as columns)"
+                    )
+                )
+            )
+        }
+
+        var diagnostics: [String] = [
+            "Mode: Numeric (Double).",
+            "Analyze workflow: linear maps.",
+            "Definition: \(definitionKind.title).",
+            "Tolerance: \(formattedScientific(tolerance)).",
+            "Domain dimension: \(domainDimension).",
+            "Codomain dimension: \(codomainDimension).",
+            "rank(T): \(rank).",
+            "nullity(T): \(nullity).",
+            "Kernel basis: \(inlineBasis(kernelBasis)).",
+            "Range basis: \(inlineBasis(rangeBasis)).",
+            "Injective: \(injective ? "yes" : "no").",
+            "Surjective: \(surjective ? "yes" : "no").",
+            "Bijective: \(bijective ? "yes" : "no").",
+            "[T]^beta_gamma ~= \(inlineMatrix(mapBetaGamma))."
+        ]
+
+        steps.append("Computed kernel and range using tolerance-aware RREF pivot analysis on A.")
+        steps.append("Computed basis-relative representation [T]^beta_gamma = G^-1 * A * B.")
+
+        var answerParts: [String] = [
+            "T: R^\(domainDimension) -> R^\(codomainDimension)",
+            "rank(T) = \(rank)",
+            "nullity(T) = \(nullity)",
+            "kernel dim = \(kernelBasis.count)",
+            "range dim = \(rangeBasis.count)",
+            "injective: \(injective ? "yes" : "no")",
+            "surjective: \(surjective ? "yes" : "no")",
+            "bijective: \(bijective ? "yes" : "no")",
+            "[T]^beta_gamma ~= \(inlineMatrix(mapBetaGamma))"
+        ]
+
+        if domainDimension == codomainDimension {
+            let betaToGamma = multiply(codomainBasisInverse, domainBasisMatrix)
+            let gammaToBeta = multiply(domainBasisInverse, codomainBasisMatrix)
+            let mapBeta = multiply(domainBasisInverse, multiply(standardMatrix, domainBasisMatrix))
+            let mapGamma = multiply(codomainBasisInverse, multiply(standardMatrix, codomainBasisMatrix))
+            let reconstructedGamma = multiply(betaToGamma, multiply(mapBeta, gammaToBeta))
+            let similarityResidual = maxAbsDifference(reconstructedGamma, mapGamma)
+            let similar = similarityResidual <= tolerance * 10
+            let traceBeta = trace(of: mapBeta)
+            let traceGamma = trace(of: mapGamma)
+            let determinantBeta = determinant(of: mapBeta, tolerance: tolerance)
+            let determinantGamma = determinant(of: mapGamma, tolerance: tolerance)
+
+            answerParts.append("similar via basis change: \(similar ? "yes" : "no")")
+            diagnostics.append("C_(gamma<-beta) ~= \(inlineMatrix(betaToGamma)).")
+            diagnostics.append("C_(beta<-gamma) ~= \(inlineMatrix(gammaToBeta)).")
+            diagnostics.append("Similarity residual ||C[T]_beta C^-1 - [T]_gamma||_max ~= \(formatted(similarityResidual)).")
+            if !similar {
+                diagnostics.append("Residual exceeded tolerance; check basis compatibility assumptions and conditioning of the coordinate-change matrices.")
+            }
+            diagnostics.append("trace([T]_beta) ~= \(formatted(traceBeta)), trace([T]_gamma) ~= \(formatted(traceGamma)).")
+            diagnostics.append("det([T]_beta) ~= \(formatted(determinantBeta)), det([T]_gamma) ~= \(formatted(determinantGamma)).")
+
+            steps.append("Computed coordinate-change matrices C_(gamma<-beta) and C_(beta<-gamma).")
+            steps.append("Checked [T]_gamma ~= C_(gamma<-beta) * [T]_beta * C_(beta<-gamma).")
+
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(betaToGamma),
+                        source: "Linear maps C_(gamma<-beta)"
+                    )
+                )
+            )
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(gammaToBeta),
+                        source: "Linear maps C_(beta<-gamma)"
+                    )
+                )
+            )
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(mapBeta),
+                        source: "Linear maps [T]_beta"
+                    )
+                )
+            )
+            payloads.append(
+                .matrix(
+                    MatrixReusablePayload(
+                        entries: stringify(mapGamma),
+                        source: "Linear maps [T]_gamma"
+                    )
+                )
+            )
+        } else {
+            answerParts.append("similarity diagnostics: not applicable")
+            diagnostics.append("Similarity skipped: T is not an endomorphism because domain and codomain dimensions differ.")
+            diagnostics.append("Received T: R^\(domainDimension) -> R^\(codomainDimension). Similarity requires T: V -> V.")
+            diagnostics.append("Provide two ordered bases of the same n-dimensional ambient space to enable C_(gamma<-beta) and [T]_beta/[T]_gamma comparison.")
+            steps.append("Skipped similarity and basis-change comparison because this map is not an endomorphism.")
+        }
+
+        return MatrixMasterComputationResult(
+            answer: answerParts.joined(separator: " | "),
+            diagnostics: diagnostics,
+            steps: steps,
+            reusablePayloads: payloads
+        )
     }
 
     private func analyzeNumericSpaces(
@@ -1277,6 +1556,13 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
         return parsedMatrix
     }
 
+    private func parseSecondaryMatrixEntries(_ rawEntries: [[String]]?) throws -> [[Double]] {
+        guard let rawEntries else {
+            throw MatrixNumericEngineError.linearMapsRequiresSecondaryMatrix
+        }
+        return try parseMatrixEntries(rawEntries)
+    }
+
     private func parseVectorEntries(_ entries: [String]?) throws -> [Double]? {
         guard let entries else {
             return nil
@@ -1351,6 +1637,45 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
                 expected: expectedDimension,
                 actual: first.count
             )
+        }
+
+        var parsedVectors: [[Double]] = []
+        for (vectorIndex, vectorTokens) in rawBasisVectors.enumerated() {
+            guard vectorTokens.count == expectedDimension else {
+                throw MatrixNumericEngineError.analyzeBasisDimensionMismatch(
+                    expected: expectedDimension,
+                    actual: vectorTokens.count,
+                    vectorIndex: vectorIndex
+                )
+            }
+
+            var parsedVector: [Double] = []
+            for (entryIndex, token) in vectorTokens.enumerated() {
+                guard let value = parseToken(token) else {
+                    throw MatrixNumericEngineError.unsupportedToken(
+                        row: vectorIndex + 1,
+                        column: entryIndex + 1,
+                        token: token
+                    )
+                }
+                parsedVector.append(value)
+            }
+            parsedVectors.append(parsedVector)
+        }
+
+        return parsedVectors
+    }
+
+    private func parseLinearMapSecondaryBasisVectors(
+        from request: MatrixMasterComputationRequest
+    ) throws -> [[Double]] {
+        guard let rawBasisVectors = request.secondaryBasisVectors, !rawBasisVectors.isEmpty else {
+            throw MatrixNumericEngineError.linearMapsRequiresSecondaryBasisVectors
+        }
+
+        let expectedDimension = rawBasisVectors[0].count
+        guard expectedDimension > 0 else {
+            throw MatrixNumericEngineError.linearMapsRequiresSecondaryBasisVectors
         }
 
         var parsedVectors: [[Double]] = []
@@ -1830,6 +2155,20 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
         return result
     }
 
+    private func maxAbsDifference(_ lhs: [[Double]], _ rhs: [[Double]]) -> Double {
+        guard sameShape(lhs, rhs) else {
+            return .infinity
+        }
+
+        var maxDifference = 0.0
+        for row in lhs.indices {
+            for column in lhs[row].indices {
+                maxDifference = max(maxDifference, abs(lhs[row][column] - rhs[row][column]))
+            }
+        }
+        return maxDifference
+    }
+
     private func transpose(_ matrix: [[Double]]) -> [[Double]] {
         let rowCount = matrix.count
         let columnCount = matrix.first?.count ?? 0
@@ -1862,6 +2201,10 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
                 partial + pair.0 * pair.1
             }
         }
+    }
+
+    private func inlineVector(_ vector: [Double]) -> String {
+        "[\(vector.map(formatted).joined(separator: ", "))]"
     }
 
     private func dot(_ lhs: [Double], _ rhs: [Double]) -> Double {
@@ -2034,6 +2377,17 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             .enumerated()
             .map { "c\($0.offset + 1) ~= \(formatted($0.element))" }
             .joined(separator: ", ")
+    }
+
+    private func coordinateFamilyExpression(
+        witness: [Double],
+        directions: [[Double]]
+    ) -> String {
+        var segments = ["c ~= \(inlineVector(witness))"]
+        for (index, direction) in directions.enumerated() {
+            segments.append("+ t\(index + 1) * \(inlineVector(direction))")
+        }
+        return segments.joined(separator: " ")
     }
 
     private func formattedDependenceRelation(_ coefficients: [Double]) -> String {

@@ -15,7 +15,12 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
     @Published public var basisDraft: BasisDraftInput
     @Published public var secondaryBasisDraft: BasisDraftInput
     @Published public var analyzeKind: MatrixAnalyzeKind
+    @Published public var linearMapDefinitionKind: MatrixLinearMapDefinitionKind
     @Published public var spacesKind: MatrixSpacesKind
+    @Published public var spacesPresetKind: MatrixSpacesPresetKind
+    @Published public var spacesPolynomialDegree: Int
+    @Published public var spacesMatrixRowCount: Int
+    @Published public var spacesMatrixColumnCount: Int
     @Published public var operateKind: MatrixOperateKind
     @Published public var operateScalarToken: String
     @Published public var operateExponent: Int
@@ -46,7 +51,12 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         basisDraft: BasisDraftInput = BasisDraftInput(),
         secondaryBasisDraft: BasisDraftInput = BasisDraftInput(name: "W"),
         analyzeKind: MatrixAnalyzeKind = .matrixProperties,
+        linearMapDefinitionKind: MatrixLinearMapDefinitionKind = .matrix,
         spacesKind: MatrixSpacesKind = .basisTestExtract,
+        spacesPresetKind: MatrixSpacesPresetKind = .none,
+        spacesPolynomialDegree: Int = 2,
+        spacesMatrixRowCount: Int = 2,
+        spacesMatrixColumnCount: Int = 2,
         operateKind: MatrixOperateKind = .matrixAdd,
         operateScalarToken: String = "2",
         operateExponent: Int = 2,
@@ -68,7 +78,12 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         self.basisDraft = basisDraft
         self.secondaryBasisDraft = secondaryBasisDraft
         self.analyzeKind = analyzeKind
+        self.linearMapDefinitionKind = linearMapDefinitionKind
         self.spacesKind = spacesKind
+        self.spacesPresetKind = spacesPresetKind
+        self.spacesPolynomialDegree = max(0, spacesPolynomialDegree)
+        self.spacesMatrixRowCount = max(1, spacesMatrixRowCount)
+        self.spacesMatrixColumnCount = max(1, spacesMatrixColumnCount)
         self.operateKind = operateKind
         self.operateScalarToken = operateScalarToken
         self.operateExponent = max(1, operateExponent)
@@ -177,7 +192,12 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             basisVectors: basisVectorsForRequest(destination: destination),
             secondaryBasisVectors: secondaryBasisVectorsForRequest(destination: destination),
             analyzeKind: analyzeKindForRequest(destination: destination),
-            spacesKind: spacesKindForRequest(destination: destination)
+            spacesKind: spacesKindForRequest(destination: destination),
+            spacesPresetKind: spacesPresetKindForRequest(destination: destination),
+            spacesPolynomialDegree: spacesPolynomialDegreeForRequest(destination: destination),
+            spacesMatrixRowCount: spacesMatrixRowCountForRequest(destination: destination),
+            spacesMatrixColumnCount: spacesMatrixColumnCountForRequest(destination: destination),
+            linearMapDefinitionKind: linearMapDefinitionKindForRequest(destination: destination)
         )
 
         do {
@@ -348,6 +368,29 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         libraryExportURL.path
     }
 
+    public func applySpacesPresetToPrimarySet() {
+        applySpacesPreset(toPrimary: true, toSecondary: false)
+    }
+
+    public func applySpacesPresetToSecondarySet() {
+        applySpacesPreset(toPrimary: false, toSecondary: true)
+    }
+
+    public func applySpacesPresetToBothSets() {
+        applySpacesPreset(toPrimary: true, toSecondary: true)
+    }
+
+    public var spacesPresetSummary: String {
+        switch spacesPresetKind {
+        case .none:
+            return MatrixSpacesPresetKind.none.title
+        case .polynomialSpace:
+            return "P_\(max(0, spacesPolynomialDegree))(F)"
+        case .matrixSpace:
+            return "M_\(max(1, spacesMatrixRowCount))x\(max(1, spacesMatrixColumnCount))(F)"
+        }
+    }
+
     private func validateInputs(for destination: MatrixMasterDestination) throws {
         switch destination {
         case .solve:
@@ -369,9 +412,13 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         case .solve:
             return "Matrix \(matrixDraft.rows)x\(matrixDraft.columns), mode: \(selectedMode.rawValue)"
         case .analyze:
+            if analyzeKind == .linearMaps {
+                return "Analyze \(analyzeKind.title), definition: \(linearMapDefinitionKind.title), map matrix: \(matrixDraft.rows)x\(matrixDraft.columns), image matrix: \(secondaryMatrixDraft.rows)x\(secondaryMatrixDraft.columns), domain basis vectors: \(basisDraft.vectorCount), codomain basis vectors: \(secondaryBasisDraft.vectorCount), mode: \(selectedMode.rawValue)"
+            }
+
             return "Analyze \(analyzeKind.title), matrix \(matrixDraft.rows)x\(matrixDraft.columns), basis vectors: \(basisDraft.vectorCount), vector dimension: \(vectorDraft.dimension), mode: \(selectedMode.rawValue)"
         case .spaces:
-            return "Spaces \(spacesKind.title), U vectors: \(basisDraft.vectorCount), W vectors: \(secondaryBasisDraft.vectorCount), dimension: \(basisDraft.dimension), mode: \(selectedMode.rawValue)"
+            return "Spaces \(spacesKind.title), U vectors: \(basisDraft.vectorCount), W vectors: \(secondaryBasisDraft.vectorCount), dimension: \(basisDraft.dimension), preset: \(spacesPresetSummary), mode: \(selectedMode.rawValue)"
         case .operate:
             return "Operate \(operateKind.title), matrix \(matrixDraft.rows)x\(matrixDraft.columns), mode: \(selectedMode.rawValue)"
         case .library:
@@ -384,18 +431,26 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         case .solve, .operate:
             return matrixDraft.entries
         case .analyze:
-            return analyzeKind == .matrixProperties ? matrixDraft.entries : nil
+            switch analyzeKind {
+            case .matrixProperties, .linearMaps:
+                return matrixDraft.entries
+            case .spanMembership, .independence, .coordinates:
+                return nil
+            }
         case .spaces, .library:
             return nil
         }
     }
 
     private func secondaryMatrixEntriesForRequest(destination: MatrixMasterDestination) -> [[String]]? {
-        guard destination == .operate else {
+        switch destination {
+        case .operate:
+            return secondaryMatrixDraft.entries
+        case .analyze:
+            return analyzeKind == .linearMaps ? secondaryMatrixDraft.entries : nil
+        case .solve, .spaces, .library:
             return nil
         }
-
-        return secondaryMatrixDraft.entries
     }
 
     private func vectorEntriesForRequest(destination: MatrixMasterDestination) -> [String]? {
@@ -406,7 +461,7 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             switch analyzeKind {
             case .spanMembership, .coordinates:
                 return vectorDraft.entries
-            case .matrixProperties, .independence:
+            case .matrixProperties, .independence, .linearMaps:
                 return nil
             }
         case .solve, .spaces, .library:
@@ -463,11 +518,14 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
     }
 
     private func secondaryBasisVectorsForRequest(destination: MatrixMasterDestination) -> [[String]]? {
-        guard destination == .spaces else {
+        switch destination {
+        case .spaces:
+            return secondaryBasisDraft.vectors.map(\.entries)
+        case .analyze:
+            return analyzeKind == .linearMaps ? secondaryBasisDraft.vectors.map(\.entries) : nil
+        case .solve, .operate, .library:
             return nil
         }
-
-        return secondaryBasisDraft.vectors.map(\.entries)
     }
 
     private func analyzeKindForRequest(destination: MatrixMasterDestination) -> MatrixAnalyzeKind? {
@@ -484,6 +542,46 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         }
 
         return spacesKind
+    }
+
+    private func spacesPresetKindForRequest(destination: MatrixMasterDestination) -> MatrixSpacesPresetKind? {
+        guard destination == .spaces else {
+            return nil
+        }
+
+        return spacesPresetKind
+    }
+
+    private func spacesPolynomialDegreeForRequest(destination: MatrixMasterDestination) -> Int? {
+        guard destination == .spaces, spacesPresetKind == .polynomialSpace else {
+            return nil
+        }
+
+        return max(0, spacesPolynomialDegree)
+    }
+
+    private func spacesMatrixRowCountForRequest(destination: MatrixMasterDestination) -> Int? {
+        guard destination == .spaces, spacesPresetKind == .matrixSpace else {
+            return nil
+        }
+
+        return max(1, spacesMatrixRowCount)
+    }
+
+    private func spacesMatrixColumnCountForRequest(destination: MatrixMasterDestination) -> Int? {
+        guard destination == .spaces, spacesPresetKind == .matrixSpace else {
+            return nil
+        }
+
+        return max(1, spacesMatrixColumnCount)
+    }
+
+    private func linearMapDefinitionKindForRequest(destination: MatrixMasterDestination) -> MatrixLinearMapDefinitionKind? {
+        guard destination == .analyze, analyzeKind == .linearMaps else {
+            return nil
+        }
+
+        return linearMapDefinitionKind
     }
 
     private func validateOperateInputs() throws {
@@ -532,6 +630,16 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             _ = try vectorDraft.validatedEntries(vectorIndex: 0)
         case .independence:
             _ = try basisDraft.validatedVectors()
+        case .linearMaps:
+            _ = try basisDraft.validatedVectors()
+            _ = try secondaryBasisDraft.validatedVectors()
+
+            switch linearMapDefinitionKind {
+            case .matrix:
+                _ = try matrixDraft.validatedEntries()
+            case .basisImages:
+                _ = try secondaryMatrixDraft.validatedEntries()
+            }
         }
     }
 
@@ -552,6 +660,85 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
                     vectorIndex: 0
                 )
             }
+        }
+    }
+
+    private func applySpacesPreset(toPrimary: Bool, toSecondary: Bool) {
+        guard spacesPresetKind != .none else {
+            return
+        }
+
+        let vectors = spacesPresetVectors()
+        guard !vectors.isEmpty else {
+            return
+        }
+
+        let presetLabel = spacesPresetSummary
+        if toPrimary {
+            basisDraft = BasisDraftInput(
+                name: toSecondary ? "U (\(presetLabel))" : basisDraft.name,
+                vectors: vectors
+            )
+        }
+        if toSecondary {
+            secondaryBasisDraft = BasisDraftInput(
+                name: "W (\(presetLabel))",
+                vectors: vectors
+            )
+        }
+    }
+
+    private func spacesPresetVectors() -> [VectorDraftInput] {
+        switch spacesPresetKind {
+        case .none:
+            return []
+        case .polynomialSpace:
+            let degree = max(0, spacesPolynomialDegree)
+            let dimension = degree + 1
+            return canonicalBasisVectors(
+                dimension: dimension,
+                names: (0...degree).map(polynomialBasisLabel(forDegree:))
+            )
+        case .matrixSpace:
+            let rows = max(1, spacesMatrixRowCount)
+            let columns = max(1, spacesMatrixColumnCount)
+            let dimension = rows * columns
+
+            var names: [String] = []
+            names.reserveCapacity(dimension)
+            for row in 1...rows {
+                for column in 1...columns {
+                    names.append("E\(row)\(column)")
+                }
+            }
+
+            return canonicalBasisVectors(dimension: dimension, names: names)
+        }
+    }
+
+    private func canonicalBasisVectors(dimension: Int, names: [String]) -> [VectorDraftInput] {
+        let safeDimension = max(1, dimension)
+        var vectors: [VectorDraftInput] = []
+        vectors.reserveCapacity(safeDimension)
+
+        for index in 0..<safeDimension {
+            var entries = Array(repeating: "0", count: safeDimension)
+            entries[index] = "1"
+            let name = index < names.count ? names[index] : "e\(index + 1)"
+            vectors.append(VectorDraftInput(name: name, entries: entries))
+        }
+
+        return vectors
+    }
+
+    private func polynomialBasisLabel(forDegree degree: Int) -> String {
+        switch degree {
+        case 0:
+            return "1"
+        case 1:
+            return "x"
+        default:
+            return "x^\(degree)"
         }
     }
 

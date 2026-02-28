@@ -154,10 +154,29 @@ public struct MatrixMasterFeatureDestinationView: View {
             )
             operateAuxiliaryInputs
         case .analyze:
-            AnalyzeConfigurationView(analyzeKind: $coordinator.analyzeKind)
+            AnalyzeConfigurationView(
+                analyzeKind: $coordinator.analyzeKind,
+                linearMapDefinitionKind: $coordinator.linearMapDefinitionKind
+            )
             analyzeAuxiliaryInputs
         case .spaces:
-            SpacesConfigurationView(spacesKind: $coordinator.spacesKind)
+            SpacesConfigurationView(
+                spacesKind: $coordinator.spacesKind,
+                spacesPresetKind: $coordinator.spacesPresetKind,
+                polynomialDegree: $coordinator.spacesPolynomialDegree,
+                matrixSpaceRows: $coordinator.spacesMatrixRowCount,
+                matrixSpaceColumns: $coordinator.spacesMatrixColumnCount,
+                showsSecondaryApplyActions: spacesWorkflowNeedsSecondarySet,
+                onApplyPrimaryPreset: {
+                    coordinator.applySpacesPresetToPrimarySet()
+                },
+                onApplySecondaryPreset: {
+                    coordinator.applySpacesPresetToSecondarySet()
+                },
+                onApplyBothPresets: {
+                    coordinator.applySpacesPresetToBothSets()
+                }
+            )
             spacesAuxiliaryInputs
         case .library:
             VectorEditorView(
@@ -217,6 +236,29 @@ public struct MatrixMasterFeatureDestinationView: View {
                 title: "Vector x for coordinates [x]_beta",
                 showsNameField: true
             )
+        case .linearMaps:
+            BasisEditorView(
+                basis: $coordinator.basisDraft,
+                title: "Domain basis β"
+            )
+            BasisEditorView(
+                basis: $coordinator.secondaryBasisDraft,
+                title: "Codomain / comparison basis γ (or β')"
+            )
+            switch coordinator.linearMapDefinitionKind {
+            case .matrix:
+                MatrixGridEditorView(
+                    matrix: $coordinator.matrixDraft,
+                    title: "Map matrix A (standard coordinates)",
+                    showsRandomizeButton: true
+                )
+            case .basisImages:
+                MatrixGridEditorView(
+                    matrix: $coordinator.secondaryMatrixDraft,
+                    title: "Image matrix Y = [T(b1) ... T(bn)]",
+                    showsRandomizeButton: true
+                )
+            }
         }
     }
 
@@ -237,6 +279,15 @@ public struct MatrixMasterFeatureDestinationView: View {
                 basis: $coordinator.secondaryBasisDraft,
                 title: "Generating Set W"
             )
+        }
+    }
+
+    private var spacesWorkflowNeedsSecondarySet: Bool {
+        switch coordinator.spacesKind {
+        case .basisTestExtract, .basisExtendPrune:
+            return false
+        case .subspaceSum, .subspaceIntersection, .directSumCheck:
+            return true
         }
     }
 

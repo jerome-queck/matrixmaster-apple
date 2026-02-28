@@ -209,6 +209,43 @@ final class MatrixFeaturesTests: XCTestCase {
         )
     }
 
+    func testCoordinatorAnalyzeLinearMapsBasisImagesWorkflowProducesMapDiagnostics() async {
+        let domainBasis = BasisDraftInput(vectors: [
+            VectorDraftInput(name: "b1", entries: ["1", "0"]),
+            VectorDraftInput(name: "b2", entries: ["0", "1"])
+        ])
+        let codomainBasis = BasisDraftInput(name: "Gamma", vectors: [
+            VectorDraftInput(name: "g1", entries: ["1", "0"]),
+            VectorDraftInput(name: "g2", entries: ["0", "1"])
+        ])
+        var imageMatrix = MatrixDraftInput(rows: 2, columns: 2)
+        imageMatrix.setValue("1", row: 0, column: 0)
+        imageMatrix.setValue("0", row: 0, column: 1)
+        imageMatrix.setValue("0", row: 1, column: 0)
+        imageMatrix.setValue("0", row: 1, column: 1)
+
+        let coordinator = MatrixMasterFeatureCoordinator(
+            secondaryMatrixDraft: imageMatrix,
+            basisDraft: domainBasis,
+            secondaryBasisDraft: codomainBasis,
+            analyzeKind: .linearMaps,
+            linearMapDefinitionKind: .basisImages
+        )
+
+        await coordinator.runQuickComputation(for: .analyze)
+
+        XCTAssertTrue(coordinator.lastResult?.answer.contains("rank(T) = 1") == true)
+        XCTAssertTrue(coordinator.lastResult?.answer.contains("[T]^beta_gamma") == true)
+        XCTAssertTrue(
+            coordinator.lastResult?.reusablePayloads.contains(where: {
+                if case let .matrix(payload) = $0 {
+                    return payload.source == "Linear maps [T]^beta_gamma"
+                }
+                return false
+            }) == true
+        )
+    }
+
     func testCoordinatorSpacesDirectSumWorkflowProducesDecision() async {
         let primary = BasisDraftInput(vectors: [
             VectorDraftInput(name: "u1", entries: ["1", "0"]),
@@ -228,6 +265,39 @@ final class MatrixFeaturesTests: XCTestCase {
 
         XCTAssertTrue(coordinator.lastResult?.answer.contains("direct sum") == true)
         XCTAssertTrue(coordinator.lastResult?.diagnostics.contains(where: { $0.contains("dim(U ∩ W) = 0") }) == true)
+    }
+
+    func testCoordinatorAppliesPolynomialPresetToBothSpaceSets() {
+        let coordinator = MatrixMasterFeatureCoordinator(
+            spacesPresetKind: .polynomialSpace,
+            spacesPolynomialDegree: 3
+        )
+
+        coordinator.applySpacesPresetToBothSets()
+
+        XCTAssertEqual(coordinator.basisDraft.vectorCount, 4)
+        XCTAssertEqual(coordinator.basisDraft.dimension, 4)
+        XCTAssertEqual(coordinator.secondaryBasisDraft.vectorCount, 4)
+        XCTAssertEqual(coordinator.secondaryBasisDraft.dimension, 4)
+        XCTAssertEqual(coordinator.basisDraft.vectors[0].name, "1")
+        XCTAssertEqual(coordinator.basisDraft.vectors[1].name, "x")
+        XCTAssertEqual(coordinator.basisDraft.vectors[2].name, "x^2")
+    }
+
+    func testCoordinatorAppliesMatrixSpacePresetToPrimarySet() {
+        let coordinator = MatrixMasterFeatureCoordinator(
+            spacesPresetKind: .matrixSpace,
+            spacesMatrixRowCount: 2,
+            spacesMatrixColumnCount: 3
+        )
+
+        coordinator.applySpacesPresetToPrimarySet()
+
+        XCTAssertEqual(coordinator.basisDraft.vectorCount, 6)
+        XCTAssertEqual(coordinator.basisDraft.dimension, 6)
+        XCTAssertEqual(coordinator.basisDraft.vectors[0].name, "E11")
+        XCTAssertEqual(coordinator.basisDraft.vectors[5].name, "E23")
+        XCTAssertEqual(coordinator.secondaryBasisDraft.vectorCount, 2)
     }
 
     func testCoordinatorRunsOperateMatrixMultiply() async {

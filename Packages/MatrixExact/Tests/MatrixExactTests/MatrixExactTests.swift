@@ -287,13 +287,120 @@ final class MatrixExactTests: XCTestCase {
         let result = try await engine.compute(request)
 
         XCTAssertTrue(result.answer.contains("not unique"))
+        XCTAssertTrue(result.answer.contains("Family: c ="))
         XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("Homogeneous direction basis") }))
+        XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("Coordinate family:") }))
         XCTAssertTrue(result.reusablePayloads.contains(where: {
             if case let .vector(payload) = $0 {
-                return payload.source == "Analyze coordinate nullspace direction"
+                return payload.source.contains("Analyze coordinate nullspace direction")
             }
             return false
         }))
+    }
+
+    func testExactAnalyzeLinearMapsFromMatrixSupportsBasisRepresentationAndSimilarity() async throws {
+        let engine = MatrixExactEngine()
+        let request = MatrixMasterComputationRequest(
+            destination: .analyze,
+            mode: .exact,
+            inputSummary: "Linear maps matrix definition",
+            matrixEntries: [
+                ["1", "0"],
+                ["0", "2"]
+            ],
+            basisVectors: [
+                ["1", "0"],
+                ["0", "1"]
+            ],
+            secondaryBasisVectors: [
+                ["1", "1"],
+                ["1", "-1"]
+            ],
+            analyzeKind: .linearMaps,
+            linearMapDefinitionKind: .matrix
+        )
+
+        let result = try await engine.compute(request)
+
+        XCTAssertTrue(result.answer.contains("rank(T) = 2"))
+        XCTAssertTrue(result.answer.contains("injective: yes"))
+        XCTAssertTrue(result.answer.contains("surjective: yes"))
+        XCTAssertTrue(result.answer.contains("similar via basis change: yes"))
+        XCTAssertTrue(result.answer.contains("[T]^beta_gamma"))
+        XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("C_(gamma<-beta)") }))
+        XCTAssertTrue(result.reusablePayloads.contains(where: {
+            if case let .matrix(payload) = $0 {
+                return payload.source == "Linear maps [T]^beta_gamma"
+            }
+            return false
+        }))
+    }
+
+    func testExactAnalyzeLinearMapsFromBasisImagesComputesKernelAndRange() async throws {
+        let engine = MatrixExactEngine()
+        let request = MatrixMasterComputationRequest(
+            destination: .analyze,
+            mode: .exact,
+            inputSummary: "Linear maps basis images",
+            secondaryMatrixEntries: [
+                ["1", "0"],
+                ["0", "0"]
+            ],
+            basisVectors: [
+                ["1", "0"],
+                ["0", "1"]
+            ],
+            secondaryBasisVectors: [
+                ["1", "0"],
+                ["0", "1"]
+            ],
+            analyzeKind: .linearMaps,
+            linearMapDefinitionKind: .basisImages
+        )
+
+        let result = try await engine.compute(request)
+
+        XCTAssertTrue(result.answer.contains("rank(T) = 1"))
+        XCTAssertTrue(result.answer.contains("nullity(T) = 1"))
+        XCTAssertTrue(result.answer.contains("injective: no"))
+        XCTAssertTrue(result.answer.contains("surjective: no"))
+        XCTAssertTrue(result.reusablePayloads.contains(where: {
+            if case let .matrix(payload) = $0 {
+                return payload.source == "Linear maps image matrix Y"
+            }
+            return false
+        }))
+    }
+
+    func testExactAnalyzeLinearMapsReportsSimilarityNotApplicableForNonEndomorphism() async throws {
+        let engine = MatrixExactEngine()
+        let request = MatrixMasterComputationRequest(
+            destination: .analyze,
+            mode: .exact,
+            inputSummary: "Linear maps non-endomorphism",
+            matrixEntries: [
+                ["1", "0"],
+                ["0", "1"],
+                ["1", "1"]
+            ],
+            basisVectors: [
+                ["1", "0"],
+                ["0", "1"]
+            ],
+            secondaryBasisVectors: [
+                ["1", "0", "0"],
+                ["0", "1", "0"],
+                ["0", "0", "1"]
+            ],
+            analyzeKind: .linearMaps,
+            linearMapDefinitionKind: .matrix
+        )
+
+        let result = try await engine.compute(request)
+
+        XCTAssertTrue(result.answer.contains("similarity diagnostics: not applicable"))
+        XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("not an endomorphism") }))
+        XCTAssertTrue(result.steps.contains(where: { $0.contains("Skipped similarity") }))
     }
 
     func testExactSpacesBasisExtendPruneBuildsExtendedBasis() async throws {

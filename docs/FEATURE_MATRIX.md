@@ -35,8 +35,17 @@ This file maps the requested linear algebra inventory to implementation surfaces
   - dedicated Spaces workflows for subspace sum/intersection/direct-sum checks
   - coordinate-vector non-unique diagnostics with witness and nullspace-direction payloads
   - randomize controls on all matrix/vector-entry destination tabs
-- Milestone C computational scope is complete; remaining spaces/bases rows below are theory/UX expansion items scheduled for later phases.
-- Remaining rows in this matrix that target later phases (theory/abstract-space UX expansion, linear maps, orthogonality, advanced topics) remain intentionally in-progress.
+- Phase 4 (Linear maps and basis changes) now includes:
+  - Analyze linear-map workflow routing for exact and numeric modes with map definition by matrix or basis-image matrix input
+  - kernel/range basis witnesses plus rank/nullity and injective/surjective/bijective decisions
+  - basis-relative map matrices (`[T]^beta_gamma`) and change-of-coordinates matrices with reusable payload output
+  - similarity diagnostics from basis change, including trace/determinant invariant checks and explicit non-endomorphism messaging when similarity is not applicable
+  - Spaces abstract-space presets (`P_n(F)` and `M_mxn(F)`) with canonical-basis template application
+  - explicit basis-dimension controls so vector size can be customized beyond the default 3-entry draft
+  - full coordinate-family parameterization diagnostics for non-unique coordinate workflows
+  - baseline math typography rendering upgrades across answer/diagnostic/step result surfaces
+- Milestones A through D (Phase 4) are complete for currently in-scope computational workflows.
+- Remaining rows in this matrix that target later phases (theory depth, orthogonality, and advanced topics) remain intentionally in-progress.
 
 ---
 
@@ -60,13 +69,13 @@ This file maps the requested linear algebra inventory to implementation surfaces
 - elementary matrices - Exact/Both - Core MVP
 
 ### Abstract vector spaces
-- polynomial spaces `P_n(F)` represented by basis - Exact/Both - Phase 4+ spaces expansion
-- matrix spaces as vector spaces - Exact/Both - Phase 4+ spaces expansion
+- polynomial spaces `P_n(F)` represented by basis - Exact/Both - Phase 4 (preset templates complete)
+- matrix spaces as vector spaces - Exact/Both - Phase 4 (preset templates complete)
 - function spaces represented through finite-dimensional chosen bases - Numeric/Exact depending basis - Later in spaces/orthogonality expansion
 
 ### Linear maps / operators
-- maps in `L(V,W)` with basis metadata - Both - Linear maps phase
-- endomorphisms in `L(V)` - Both - Linear maps phase
+- maps in `L(V,W)` with basis metadata - Both - Phase 4 (complete)
+- endomorphisms in `L(V)` - Both - Phase 4 (complete)
 - operator-specific eigen workflows - Both - Linear maps/eigen phase
 
 ---
@@ -162,8 +171,8 @@ This file maps the requested linear algebra inventory to implementation surfaces
 | intersection of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
 | sum of subspaces | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
 | direct sums | Analyze / Spaces | Exact/Both | Spaces and bases (checkpoint 3) |
-| polynomial spaces | Spaces | Exact/Both | Phase 4+ spaces expansion |
-| matrix spaces | Spaces | Exact/Both | Phase 4+ spaces expansion |
+| polynomial spaces | Spaces | Exact/Both | Phase 4 (preset templates complete) |
+| matrix spaces | Spaces | Exact/Both | Phase 4 (preset templates complete) |
 
 ---
 
@@ -216,12 +225,12 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| define linear transformation | Analyze / Linear Maps | Both | Linear maps phase |
-| kernel | Linear Maps | Exact/Both | Linear maps phase |
-| range/image | Linear Maps | Exact/Both | Linear maps phase |
-| rank and nullity of map | Linear Maps | Exact/Both | Linear maps phase |
-| injective/surjective/bijective | Linear Maps | Exact/Both | Linear maps phase |
-| isomorphisms | Linear Maps explanations | Exact/Both | Linear maps phase |
+| define linear transformation | Analyze / Linear Maps | Both | Phase 4 (complete) |
+| kernel | Linear Maps | Exact/Both | Phase 4 (complete) |
+| range/image | Linear Maps | Exact/Both | Phase 4 (complete) |
+| rank and nullity of map | Linear Maps | Exact/Both | Phase 4 (complete) |
+| injective/surjective/bijective | Linear Maps | Exact/Both | Phase 4 (complete) |
+| isomorphisms | Linear Maps explanations | Exact/Both | Phase 4 (complete) |
 
 ---
 
@@ -229,11 +238,11 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| matrix representation `[T]^\beta_\gamma` | Linear Maps | Exact/Both | Linear maps phase |
-| coordinate maps | Spaces / Linear Maps | Exact/Both | Linear maps phase |
-| composition as matrix multiplication | Linear Maps explanation | Both | Linear maps phase |
-| change-of-coordinates matrices | Linear Maps / Spaces | Exact/Both | Linear maps phase |
-| changing matrix representations | Linear Maps | Exact/Both | Linear maps phase |
+| matrix representation `[T]^\beta_\gamma` | Linear Maps | Exact/Both | Phase 4 (complete) |
+| coordinate maps | Spaces / Linear Maps | Exact/Both | Phase 4 (complete) |
+| composition as matrix multiplication | Linear Maps explanation | Both | Phase 4 (complete) |
+| change-of-coordinates matrices | Linear Maps / Spaces | Exact/Both | Phase 4 (complete) |
+| changing matrix representations | Linear Maps | Exact/Both | Phase 4 (complete) |
 
 ---
 
@@ -241,10 +250,10 @@ This file maps the requested linear algebra inventory to implementation surfaces
 
 | Feature | Surface | Mode | Milestone |
 |---|---|---:|---|
-| similarity definition | Analyze / Linear Maps | Both | Linear maps / eigen phase |
-| trace similarity invariant | Analyze | Both | Linear maps / eigen phase |
-| determinant similarity invariant | Analyze | Both | Linear maps / eigen phase |
-| same operator different basis => similar matrices | Linear Maps | Both | Linear maps / eigen phase |
+| similarity definition | Analyze / Linear Maps | Both | Phase 4 (complete) |
+| trace similarity invariant | Analyze | Both | Phase 4 (complete) |
+| determinant similarity invariant | Analyze | Both | Phase 4 (complete) |
+| same operator different basis => similar matrices | Linear Maps | Both | Phase 4 (complete) |
 
 ---
 

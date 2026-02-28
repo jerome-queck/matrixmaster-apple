@@ -50,12 +50,38 @@ final class MatrixUITests: XCTestCase {
     }
 
     func testAnalyzeConfigurationViewCanBeConstructed() {
-        let view = AnalyzeConfigurationView(analyzeKind: .constant(.matrixProperties))
+        let view = AnalyzeConfigurationView(
+            analyzeKind: .constant(.matrixProperties),
+            linearMapDefinitionKind: .constant(.matrix)
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testAnalyzeConfigurationLinearMapsModeCanBeConstructed() {
+        let view = AnalyzeConfigurationView(
+            analyzeKind: .constant(.linearMaps),
+            linearMapDefinitionKind: .constant(.basisImages)
+        )
         XCTAssertNotNil(view)
     }
 
     func testSpacesConfigurationViewCanBeConstructed() {
         let view = SpacesConfigurationView(spacesKind: .constant(.basisTestExtract))
+        XCTAssertNotNil(view)
+    }
+
+    func testSpacesConfigurationViewWithPresetControlsCanBeConstructed() {
+        let view = SpacesConfigurationView(
+            spacesKind: .constant(.subspaceSum),
+            spacesPresetKind: .constant(.matrixSpace),
+            polynomialDegree: .constant(2),
+            matrixSpaceRows: .constant(2),
+            matrixSpaceColumns: .constant(2),
+            showsSecondaryApplyActions: true,
+            onApplyPrimaryPreset: {},
+            onApplySecondaryPreset: {},
+            onApplyBothPresets: {}
+        )
         XCTAssertNotNil(view)
     }
 

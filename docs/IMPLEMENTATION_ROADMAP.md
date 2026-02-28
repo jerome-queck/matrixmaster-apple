@@ -17,7 +17,8 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - Phase 3 checkpoint 1 is complete: Analyze now emits column/row/null space basis witnesses and rank-nullity identity summaries in exact and numeric modes.
 - Phase 3 checkpoint 2 is complete: Analyze now supports span membership, independence/dependence, and coordinate-vector workflows with witness certificates in exact and numeric modes.
 - Phase 3 checkpoint 3 is complete: dedicated Spaces workflows now cover basis testing/extraction, basis extension/pruning, and subspace sum/intersection/direct-sum helpers in exact and numeric modes, with coordinate-family diagnostics expanded for non-unique coordinate solutions.
-- Phase 4 (Linear maps and basis changes) is next.
+- Phase 4 (Linear maps and basis changes) is complete.
+- Phase 5 (Orthogonality and least squares) is next.
 
 ---
 
@@ -145,10 +146,11 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
   - dedicated Spaces destination and request routing now support basis test/extract and basis extend/prune workflows in exact and numeric modes.
   - Spaces now supports subspace sum, subspace intersection, and direct-sum checks with basis-witness payloads and dimension diagnostics.
   - coordinate-vector workflows now emit non-unique-family diagnostics with witness coordinates and nullspace-direction reuse payloads when uniqueness fails.
-- follow-up items moved out of Phase 3 scope:
-  - richer multi-solution coordinate-family displays beyond one witness plus one nullspace direction -> Phase 4 checkpoint 1 (workflow diagnostics polish).
-  - broader math-typography rendering upgrades across result surfaces -> Phase 4 checkpoint 1 (UI rendering polish).
-  - abstract-space presets (polynomial and matrix-space templates) for Spaces workflows -> Phase 4 checkpoint 2+ (spaces UX expansion).
+- follow-up items completed in Phase 4:
+  - richer multi-solution coordinate-family displays now emit a full family parameterization and one payload per nullspace basis direction.
+  - baseline math-typography rendering upgrades now normalize superscript/subscript/fraction rendering across result surfaces.
+  - Spaces abstract-space presets now provide polynomial and matrix-space template scaffolds.
+  - similarity diagnostics now provide explicit non-endomorphism guidance when comparison is not applicable.
 
 ### Exit criteria
 - the app clearly bridges matrix computations and space-level reasoning
@@ -168,6 +170,19 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - carry-over polish from Phase 3:
   - richer multi-solution coordinate-family diagnostics
   - baseline math typography rendering upgrades across result surfaces
+
+### Completion status (2026-02-28)
+- complete:
+  - Analyze now exposes a dedicated Linear Maps workflow in exact and numeric modes.
+  - Linear maps support map definition by standard matrix and by basis-image matrix input.
+  - Exact and numeric outputs now include kernel/range bases, rank/nullity, and injective-surjective-bijective decisions with witness payloads.
+  - Basis-relative map matrices (`[T]^beta_gamma`) now compute in both modes with reusable payload output.
+  - Change-of-coordinates matrices now compute for compatible basis pairs, including forward and inverse direction payloads.
+  - Similarity diagnostics now verify basis-change similarity for endomorphisms, report trace/determinant invariants, and emit explicit not-applicable guidance for non-endomorphism input.
+  - Spaces now includes abstract-space preset templates for polynomial spaces (`P_n(F)`) and matrix spaces (`M_mxn(F)`) with direct apply actions to generating sets.
+  - Coordinate-family diagnostics now provide full parameterized family output beyond a single nullspace direction.
+  - Basis editors now expose explicit dimension controls so vector length can be resized directly instead of staying at the default 3-entry shape.
+  - Result rendering now applies baseline math typography formatting across answer/diagnostics/steps.
 
 ### Exit criteria
 - users can move naturally between abstract maps and matrix representations

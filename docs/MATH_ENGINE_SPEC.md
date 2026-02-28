@@ -110,7 +110,7 @@ Primary method:
 - exact row reduction in exact mode
 - stable numeric decomposition in numeric mode for large dense systems
 
-Current implementation baseline (Milestone C checkpoint 3):
+Current implementation baseline (Phase 4 closure):
 - exact Solve uses rational Gauss-Jordan reduction on augmented matrices
 - numeric Solve uses tolerance-aware floating-point row reduction on augmented matrices
 - Solve emits row-operation trace steps and classifies systems as unique / infinitely many / inconsistent
@@ -124,9 +124,14 @@ Current implementation baseline (Milestone C checkpoint 3):
 - exact and numeric Analyze now support span-membership workflows with basis vectors and target-vector coefficients when in span
 - exact and numeric Analyze now support independence/dependence workflows with explicit dependence coefficients when dependent
 - exact and numeric Analyze now support coordinate-vector workflows for ordered basis input with coefficient outputs when uniquely determined
-- exact and numeric Analyze now report coordinate-family diagnostics for non-unique coordinate systems with witness plus nullspace-direction payload output
+- exact and numeric Analyze now report full coordinate-family diagnostics for non-unique coordinate systems with witness plus every nullspace-basis direction payload
 - fundamental-subspace basis payload matrices now use consistent vectors-as-columns orientation for column/row/null outputs
 - exact and numeric Spaces workflows now support basis test/extract, basis extend/prune, subspace sum/intersection, and direct-sum checks via explicit `spacesKind` routing
+- Spaces editor workflows now include abstract-space presets for polynomial spaces (`P_n(F)`) and matrix spaces (`M_mxn(F)`) that prefill canonical basis templates
+- exact and numeric Analyze now support dedicated linear-map workflows with definition by matrix or basis-image matrix input
+- exact and numeric Analyze now compute kernel/range basis witnesses, rank/nullity, and injective-surjective-bijective diagnostics for linear maps
+- exact and numeric Analyze now compute basis-relative map matrices (`[T]^beta_gamma`), change-of-coordinates matrices, and basis-change similarity diagnostics with trace/determinant invariants
+- exact and numeric linear-map diagnostics now provide explicit similarity not-applicable guidance when input describes a non-endomorphism (`R^m -> R^n`, `m != n`)
 
 Outputs:
 - consistency

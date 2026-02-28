@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 import MatrixDomain
 
@@ -78,10 +79,15 @@ public struct MatrixMasterDestinationPlaceholder: View {
     }
 
     private func formattedMath(_ text: String) -> String {
-        var rendered = text.replacingOccurrences(of: "A^-1", with: "A⁻¹")
+        var rendered = text
+            .replacingOccurrences(of: "beta", with: "β")
+            .replacingOccurrences(of: "gamma", with: "γ")
+        rendered = replacingExponentNotation(in: rendered)
         rendered = replacingIndexedSymbol(in: rendered, symbol: "x")
         rendered = replacingIndexedSymbol(in: rendered, symbol: "c")
         rendered = replacingIndexedSymbol(in: rendered, symbol: "R")
+        rendered = replacingKeywordSubscripts(in: rendered)
+        rendered = replacingIntegerFractions(in: rendered)
         return rendered
     }
 
@@ -137,6 +143,96 @@ public struct MatrixMasterDestinationPlaceholder: View {
         ]
 
         return String(digits.map { mapping[$0] ?? $0 })
+    }
+
+    private func replacingKeywordSubscripts(in text: String) -> String {
+        text
+            .replacingOccurrences(of: "_β", with: "₍β₎")
+            .replacingOccurrences(of: "_γ", with: "₍γ₎")
+            .replacingOccurrences(of: "_(γ<-β)", with: "₍γ←β₎")
+            .replacingOccurrences(of: "_(β<-γ)", with: "₍β←γ₎")
+    }
+
+    private func replacingExponentNotation(in text: String) -> String {
+        var output = ""
+        var index = text.startIndex
+
+        while index < text.endIndex {
+            let current = text[index]
+            guard current == "^" else {
+                output.append(current)
+                index = text.index(after: index)
+                continue
+            }
+
+            var scanIndex = text.index(after: index)
+            var exponentToken = ""
+
+            if scanIndex < text.endIndex, text[scanIndex] == "-" {
+                exponentToken.append("-")
+                scanIndex = text.index(after: scanIndex)
+            }
+
+            while scanIndex < text.endIndex, text[scanIndex].isNumber {
+                exponentToken.append(text[scanIndex])
+                scanIndex = text.index(after: scanIndex)
+            }
+
+            if exponentToken.isEmpty || exponentToken == "-" {
+                output.append("^")
+                index = text.index(after: index)
+                continue
+            }
+
+            output.append(superscriptDigits(exponentToken))
+            index = scanIndex
+        }
+
+        return output
+    }
+
+    private func superscriptDigits(_ token: String) -> String {
+        let mapping: [Character: Character] = [
+            "-": "⁻",
+            "0": "⁰",
+            "1": "¹",
+            "2": "²",
+            "3": "³",
+            "4": "⁴",
+            "5": "⁵",
+            "6": "⁶",
+            "7": "⁷",
+            "8": "⁸",
+            "9": "⁹"
+        ]
+        return String(token.map { mapping[$0] ?? $0 })
+    }
+
+    private func replacingIntegerFractions(in text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: #"(?<![A-Za-z0-9])(-?\d+)\/(\d+)(?![A-Za-z0-9])"#) else {
+            return text
+        }
+
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        let matches = regex.matches(in: text, options: [], range: range)
+        guard !matches.isEmpty else {
+            return text
+        }
+
+        var rendered = text
+        for match in matches.reversed() {
+            guard let fullRange = Range(match.range(at: 0), in: rendered),
+                  let numeratorRange = Range(match.range(at: 1), in: rendered),
+                  let denominatorRange = Range(match.range(at: 2), in: rendered) else {
+                continue
+            }
+
+            let numerator = rendered[numeratorRange]
+            let denominator = rendered[denominatorRange]
+            rendered.replaceSubrange(fullRange, with: "\(numerator)⁄\(denominator)")
+        }
+
+        return rendered
     }
 }
 

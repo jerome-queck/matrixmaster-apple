@@ -81,6 +81,7 @@ Owns:
 - design tokens
 - matrix editor views
 - vector and basis editors
+- abstract-space preset controls for Spaces workflows (polynomial and matrix-space templates)
 - reusable result cards
 - step timelines
 - inspectors
@@ -192,17 +193,18 @@ Result reuse is now implemented as a first-class cross-feature path:
 - computations emit typed reusable payloads (`matrix` and `vector` currently)
 - Solve exact/numeric results publish coefficient-matrix payloads and unique-solution vectors when available
 - Analyze exact/numeric results publish reusable matrix payloads (RREF, inverse, decomposition factors, and fundamental-subspace basis matrices where available)
-- Analyze now multiplexes matrix-property and basis-oriented workflows (span membership, independence/dependence, and coordinate vectors) through explicit request-kind routing in the feature layer
+- Analyze now multiplexes matrix-property, basis-oriented, and linear-map workflows through explicit request-kind routing in the feature layer
 - Spaces now has dedicated feature-level workflow routing (basis test/extract, basis extend/prune, subspace sum/intersection/direct-sum) through explicit request-kind contracts in the domain layer
 - fundamental-subspace reusable basis payloads use a consistent vectors-as-columns orientation across column/row/null-space outputs
-- non-unique coordinate workflows now emit reusable witness vectors plus nullspace-direction vectors so downstream tools can inspect coordinate families
+- non-unique coordinate workflows now emit reusable witness vectors plus every nullspace-direction basis vector so downstream tools can inspect full coordinate families
+- linear-map workflows now emit reusable map/basis payloads (standard matrix, basis-relative map matrix, coordinate-change matrices, and similarity representations)
+- linear-map workflows now emit explanatory diagnostics when similarity comparison is not applicable (non-endomorphism input)
 - Operate exact/numeric results publish reusable matrix or vector payloads by operation kind
 - feature modules expose payload adapters instead of directly mutating each other's private state
 - payload adapters prefill Analyze/Operate matrix inputs and Operate/Library vector inputs from reusable payloads
 - Library persistence actions now promote reusable vectors into durable catalog records and history entries
 
 Post-Milestone-B follow-up:
-- expand payload model to basis/map/subspace object families as those workflows ship
 - add richer destination hints when multiple compatible destinations exist
 
 ## Concurrency model

@@ -144,6 +144,7 @@ public enum MatrixAnalyzeKind: String, CaseIterable, Codable, Sendable {
     case spanMembership
     case independence
     case coordinates
+    case linearMaps
 
     public var title: String {
         switch self {
@@ -155,6 +156,22 @@ public enum MatrixAnalyzeKind: String, CaseIterable, Codable, Sendable {
             return "Independence"
         case .coordinates:
             return "Coordinate Vector"
+        case .linearMaps:
+            return "Linear Maps"
+        }
+    }
+}
+
+public enum MatrixLinearMapDefinitionKind: String, CaseIterable, Codable, Sendable {
+    case matrix
+    case basisImages
+
+    public var title: String {
+        switch self {
+        case .matrix:
+            return "Define by Matrix"
+        case .basisImages:
+            return "Define by Basis Images"
         }
     }
 }
@@ -182,6 +199,23 @@ public enum MatrixSpacesKind: String, CaseIterable, Codable, Sendable {
     }
 }
 
+public enum MatrixSpacesPresetKind: String, CaseIterable, Codable, Sendable {
+    case none
+    case polynomialSpace
+    case matrixSpace
+
+    public var title: String {
+        switch self {
+        case .none:
+            return "None"
+        case .polynomialSpace:
+            return "Polynomial Space P_n(F)"
+        case .matrixSpace:
+            return "Matrix Space M_mxn(F)"
+        }
+    }
+}
+
 public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
     public var destination: MatrixMasterDestination
     public var mode: MatrixMasterMathMode
@@ -198,6 +232,11 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
     public var secondaryBasisVectors: [[String]]?
     public var analyzeKind: MatrixAnalyzeKind?
     public var spacesKind: MatrixSpacesKind?
+    public var spacesPresetKind: MatrixSpacesPresetKind?
+    public var spacesPolynomialDegree: Int?
+    public var spacesMatrixRowCount: Int?
+    public var spacesMatrixColumnCount: Int?
+    public var linearMapDefinitionKind: MatrixLinearMapDefinitionKind?
 
     public init(
         destination: MatrixMasterDestination,
@@ -214,7 +253,12 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
         basisVectors: [[String]]? = nil,
         secondaryBasisVectors: [[String]]? = nil,
         analyzeKind: MatrixAnalyzeKind? = nil,
-        spacesKind: MatrixSpacesKind? = nil
+        spacesKind: MatrixSpacesKind? = nil,
+        spacesPresetKind: MatrixSpacesPresetKind? = nil,
+        spacesPolynomialDegree: Int? = nil,
+        spacesMatrixRowCount: Int? = nil,
+        spacesMatrixColumnCount: Int? = nil,
+        linearMapDefinitionKind: MatrixLinearMapDefinitionKind? = nil
     ) {
         self.destination = destination
         self.mode = mode
@@ -231,6 +275,11 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
         self.secondaryBasisVectors = secondaryBasisVectors
         self.analyzeKind = analyzeKind
         self.spacesKind = spacesKind
+        self.spacesPresetKind = spacesPresetKind
+        self.spacesPolynomialDegree = spacesPolynomialDegree
+        self.spacesMatrixRowCount = spacesMatrixRowCount
+        self.spacesMatrixColumnCount = spacesMatrixColumnCount
+        self.linearMapDefinitionKind = linearMapDefinitionKind
     }
 }
 
@@ -645,9 +694,15 @@ public struct BasisDraftInput: Equatable, Codable, Sendable {
             return
         }
 
+        let previousDimension = dimension
         var updated = vector
-        updated.resize(to: dimension)
+        let newDimension = max(1, updated.dimension)
+        updated.resize(to: newDimension)
         vectors[index] = updated
+
+        if newDimension != previousDimension {
+            alignVectors(to: newDimension)
+        }
     }
 
     public mutating func alignVectors(to dimension: Int) {
@@ -656,6 +711,14 @@ public struct BasisDraftInput: Equatable, Codable, Sendable {
         for index in vectors.indices {
             vectors[index].resize(to: safeDimension)
         }
+    }
+
+    public mutating func increaseDimension(by increment: Int = 1) {
+        alignVectors(to: dimension + max(1, increment))
+    }
+
+    public mutating func decreaseDimension(by decrement: Int = 1) {
+        alignVectors(to: max(1, dimension - max(1, decrement)))
     }
 
     public func validatedVectors() throws -> [[String]] {

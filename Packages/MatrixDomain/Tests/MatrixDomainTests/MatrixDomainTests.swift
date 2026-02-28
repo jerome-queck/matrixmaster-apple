@@ -68,6 +68,22 @@ final class MatrixDomainTests: XCTestCase {
         XCTAssertEqual(basis.vectors[1].entries.count, 4)
     }
 
+    func testBasisUpdateVectorDimensionChangePropagatesToAllVectors() {
+        var basis = BasisDraftInput(vectors: [
+            VectorDraftInput(name: "v1", entries: ["1", "0", "0"]),
+            VectorDraftInput(name: "v2", entries: ["0", "1", "0"])
+        ])
+        var resized = basis.vectors[1]
+        resized.appendEntry(defaultValue: "5")
+
+        basis.updateVector(resized, at: 1)
+
+        XCTAssertEqual(basis.dimension, 4)
+        XCTAssertEqual(basis.vectors[0].entries.count, 4)
+        XCTAssertEqual(basis.vectors[1].entries.count, 4)
+        XCTAssertEqual(basis.vectors[1].entries[3], "5")
+    }
+
     func testMatrixDraftInitializerFromEntriesPadsRaggedRows() {
         let draft = MatrixDraftInput(entries: [
             ["1", "2"],
@@ -136,6 +152,31 @@ final class MatrixDomainTests: XCTestCase {
         XCTAssertEqual(decoded, request)
     }
 
+    func testComputationRequestCodableRoundTripWithLinearMapAnalyzeFields() throws {
+        let request = MatrixMasterComputationRequest(
+            destination: .analyze,
+            mode: .numeric,
+            inputSummary: "Analyze linear maps",
+            matrixEntries: [["1", "0"], ["0", "1"]],
+            secondaryMatrixEntries: [["1", "0"], ["0", "0"]],
+            basisVectors: [
+                ["1", "0"],
+                ["0", "1"]
+            ],
+            secondaryBasisVectors: [
+                ["1", "1"],
+                ["1", "-1"]
+            ],
+            analyzeKind: .linearMaps,
+            linearMapDefinitionKind: .basisImages
+        )
+
+        let encoded = try JSONEncoder().encode(request)
+        let decoded = try JSONDecoder().decode(MatrixMasterComputationRequest.self, from: encoded)
+
+        XCTAssertEqual(decoded, request)
+    }
+
     func testComputationRequestCodableRoundTripWithSpacesFields() throws {
         let request = MatrixMasterComputationRequest(
             destination: .spaces,
@@ -148,7 +189,10 @@ final class MatrixDomainTests: XCTestCase {
             secondaryBasisVectors: [
                 ["0", "0", "1"]
             ],
-            spacesKind: .directSumCheck
+            spacesKind: .directSumCheck,
+            spacesPresetKind: .matrixSpace,
+            spacesMatrixRowCount: 2,
+            spacesMatrixColumnCount: 2
         )
 
         let encoded = try JSONEncoder().encode(request)

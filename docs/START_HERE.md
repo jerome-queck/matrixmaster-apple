@@ -108,10 +108,15 @@ Do not call a feature done unless:
 Current status:
 - Milestone B is complete for the Core MVP workflow set.
 - Phase 3 (Spaces and bases) is complete with checkpoints 1, 2, and 3 delivered.
+- Phase 4 (Linear maps and basis changes) is complete.
 - Solve now runs in both exact and numeric modes with augmented-matrix row reduction, classification, and reusable payload output.
 - Operate now supports matrix/vector arithmetic, matrix-vector products, transpose/trace/powers, and expression routing in both exact and numeric engines.
-- Analyze now covers exact determinant/rank/nullity/trace/inverse, numeric determinant/rank/nullity/trace/LU/QR/SVD-baseline/eigen-baseline/inverse summaries, Phase 3 checkpoint 1 fundamental-subspace witnesses (column/row/null space bases with rank-nullity identity summaries), Phase 3 checkpoint 2 basis workflows (span-membership, independence/dependence, and coordinate-vector certificates), and Phase 3 checkpoint 3 coordinate-family diagnostics for non-unique coordinate systems.
-- Spaces now provides dedicated exact and numeric workflows for basis test/extract, basis extend/prune, subspace sum, subspace intersection, and direct-sum checks with reusable basis payload output.
+- Analyze now covers exact determinant/rank/nullity/trace/inverse, numeric determinant/rank/nullity/trace/LU/QR/SVD-baseline/eigen-baseline/inverse summaries, Phase 3 checkpoint 1 fundamental-subspace witnesses (column/row/null space bases with rank-nullity identity summaries), Phase 3 checkpoint 2 basis workflows (span-membership, independence/dependence, and coordinate-vector certificates), Phase 3 checkpoint 3 coordinate-family diagnostics for non-unique coordinate systems, and Phase 4 linear-map workflows (define-by-matrix/define-by-basis-images, kernel/range, injective-surjective-bijective checks, basis-relative map matrices, coordinate-change matrices, and similarity diagnostics).
+- Spaces now provides dedicated exact and numeric workflows for basis test/extract, basis extend/prune, subspace sum, subspace intersection, and direct-sum checks with reusable basis payload output, plus abstract-space preset templates for polynomial spaces and matrix spaces.
 - Matrix and vector editor tabs now expose randomize actions anywhere users manually fill entries.
-- Phase 4 (Linear maps and basis changes) is the next implementation phase; carry-over polish from Phase 3 is scheduled there (math typography baseline and richer coordinate-family diagnostics), while abstract-space presets stay in the backlog for later expansion checkpoints.
+- Basis editors now expose explicit dimension controls so vectors are no longer locked to the default 3-entry shape.
+- Coordinate-family diagnostics now include full multi-solution parameterizations with every nullspace basis direction reused as payload output.
+- Similarity diagnostics now include explicit not-applicable guidance when linear-map input is not an endomorphism.
+- Result surfaces now apply baseline math typography rendering for exponent, subscript, and fraction notation in answers, diagnostics, and steps.
+- Phase 5 (Orthogonality and least squares) is the next implementation phase.
 - Library now includes persistence-backed vector save/load/delete, history logging, JSON export baseline, and sync-state-aware local-first write tracking.

@@ -93,14 +93,17 @@ Tools:
 - basis extraction
 - column/row/null spaces
 - coordinates and dimension
+- Spaces presets for `P_n(F)` and `M_mxn(F)` that prefill generating sets
 
 ### Linear maps subflow
 Tools:
-- define map
+- define map (by matrix or basis images)
 - kernel/range
 - injective/surjective/bijective
-- matrix representation
-- change of basis
+- basis-relative matrix representation `[T]^beta_gamma`
+- change-of-coordinates matrices
+- similarity from basis change (with trace/determinant invariants)
+- explicit "similarity not applicable" diagnostics when basis input describes a non-endomorphism map
 
 ### Eigen and canonical forms subflow
 Tools:
