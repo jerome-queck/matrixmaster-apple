@@ -103,4 +103,57 @@ final class MatrixUITests: XCTestCase {
         )
         XCTAssertNotNil(view)
     }
+
+    func testResultPresentationViewWithStructuredObjectsCanBeConstructed() {
+        let result = MatrixMasterComputationResult(
+            answer: "A * v = [1, 2]",
+            diagnostics: ["Mode: Exact."],
+            steps: ["Computed row dot products."],
+            reusablePayloads: [],
+            structuredObjects: [
+                .matrix(MatrixMathMatrixObject(label: "A", entries: [["1", "0"], ["0", "1"]])),
+                .vector(MatrixMathVectorObject(label: "v", entries: ["1", "2"])),
+                .polynomial(MatrixMathPolynomialObject(label: "p", coefficients: ["1", "-1", "2"]))
+            ],
+            rowReductionPanels: MatrixRowReductionPanels(
+                sourceLabel: "A",
+                refEntries: [["1", "0"], ["0", "1"]],
+                rrefEntries: [["1", "0"], ["0", "1"]]
+            )
+        )
+
+        let view = MatrixResultPresentationView(
+            destination: .operate,
+            mode: .exact,
+            lastResult: result
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testPolynomialSpaceElementsEditorCanBeConstructed() {
+        let basis = BasisDraftInput(vectors: [
+            VectorDraftInput(name: "p1", entries: ["1", "0", "2"]),
+            VectorDraftInput(name: "p2", entries: ["0", "1", "0"])
+        ])
+        let view = PolynomialSpaceElementsEditorView(
+            basis: .constant(basis),
+            polynomialDegree: .constant(2),
+            title: "Polynomial Elements"
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testMatrixSpaceElementsEditorCanBeConstructed() {
+        let basis = BasisDraftInput(vectors: [
+            VectorDraftInput(name: "M1", entries: ["1", "0", "0", "1"]),
+            VectorDraftInput(name: "M2", entries: ["0", "1", "1", "0"])
+        ])
+        let view = MatrixSpaceElementsEditorView(
+            basis: .constant(basis),
+            rowCount: .constant(2),
+            columnCount: .constant(2),
+            title: "Matrix Elements"
+        )
+        XCTAssertNotNil(view)
+    }
 }

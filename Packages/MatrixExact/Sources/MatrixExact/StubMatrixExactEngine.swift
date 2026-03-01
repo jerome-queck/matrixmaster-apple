@@ -241,123 +241,167 @@ public struct MatrixExactEngine: MatrixExactComputing {
         let parsedMatrix = try parse(entries: rawEntries)
         let rows = parsedMatrix.count
         let columns = parsedMatrix.first?.count ?? 0
+        let selection = request.analyzeMatrixPropertiesSelection ?? .all
 
-        let rankSummary = rrefSummary(for: parsedMatrix)
-        let nullity = max(0, columns - rankSummary.rank)
-        let columnBasisVectors = columnSpaceBasis(from: parsedMatrix, pivotColumns: rankSummary.pivotColumns)
-        let rowBasisVectors = rowSpaceBasis(from: rankSummary.reduced)
-        let nullBasisVectors = nullSpaceBasis(
-            from: rankSummary.reduced,
-            pivotColumns: rankSummary.pivotColumns,
-            columnCount: columns
-        )
+        if !selection.hasAnySelection {
+            return MatrixMasterComputationResult(
+                answer: "No Analyze outputs selected.",
+                diagnostics: [
+                    "Mode: Exact (rational arithmetic).",
+                    "Enable at least one matrix-properties output and run again."
+                ],
+                steps: []
+            )
+        }
+
         var diagnostics: [String] = [
             "Mode: Exact (rational arithmetic).",
-            "Dimensions: \(rows)x\(columns).",
-            "Rank(A): \(rankSummary.rank).",
-            "Nullity(A): \(nullity).",
-            "Rank-nullity check: \(rankSummary.rank) + \(nullity) = \(columns).",
-            "Col(A) basis: \(inlineBasis(columnBasisVectors)).",
-            "Row(A) basis: \(inlineBasis(rowBasisVectors)).",
-            "Null(A) basis: \(inlineBasis(nullBasisVectors))."
+            "Dimensions: \(rows)x\(columns)."
         ]
+        var steps: [String] = []
+        var answerSegments: [String] = []
+        var payloads: [MatrixMasterReusablePayload] = []
 
-        var steps: [String] = [
-            "Computed rank using exact RREF with pivot columns: \(pivotDescription(rankSummary.pivotColumns)).",
-            "Used pivot columns from the original matrix to witness a column-space basis.",
-            "Used nonzero rows of RREF to witness a row-space basis."
-        ]
-
-        var answerSegments: [String] = [
-            "rank(A) = \(rankSummary.rank)",
-            "nullity(A) = \(nullity)",
-            "dim Col(A) = \(columnBasisVectors.count)",
-            "dim Row(A) = \(rowBasisVectors.count)",
-            "dim Null(A) = \(nullBasisVectors.count)"
-        ]
-        var payloads: [MatrixMasterReusablePayload] = [
-            .matrix(
-                MatrixReusablePayload(
-                    entries: stringify(rankSummary.reduced),
-                    source: "Analyze RREF matrix"
-                )
-            )
-        ]
-
-        if !columnBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(columnBasisVectors, rowCount: rows)),
-                        source: "Analyze column space basis (vectors as columns)"
-                    )
-                )
-            )
+        var rankSummary: RREFSummary?
+        if selection.needsRREFComputation {
+            rankSummary = rrefSummary(for: parsedMatrix)
         }
 
-        if !rowBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(rowBasisVectors, rowCount: columns)),
-                        source: "Analyze row space basis (vectors as columns)"
+        if let rankSummary {
+            let nullity = max(0, columns - rankSummary.rank)
+
+            if selection.includeRankNullity {
+                answerSegments.append("rank(A) = \(rankSummary.rank)")
+                answerSegments.append("nullity(A) = \(nullity)")
+                diagnostics.append("Rank(A): \(rankSummary.rank).")
+                diagnostics.append("Nullity(A): \(nullity).")
+                diagnostics.append("Rank-nullity check: \(rankSummary.rank) + \(nullity) = \(columns).")
+                steps.append("Computed rank using exact RREF with pivot columns: \(pivotDescription(rankSummary.pivotColumns)).")
+            }
+
+            if selection.includeColumnSpaceBasis {
+                let columnBasisVectors = columnSpaceBasis(from: parsedMatrix, pivotColumns: rankSummary.pivotColumns)
+                answerSegments.append("dim Col(A) = \(columnBasisVectors.count)")
+                diagnostics.append("Col(A) basis: \(inlineBasis(columnBasisVectors)).")
+                steps.append("Used pivot columns from the original matrix to witness a column-space basis.")
+                if !columnBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(columnBasisVectors, rowCount: rows)),
+                                source: "Analyze column space basis (vectors as columns)"
+                            )
+                        )
                     )
-                )
-            )
-        }
+                }
+            }
 
-        if !nullBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(nullBasisVectors, rowCount: columns)),
-                        source: "Analyze null space basis (vectors as columns)"
+            if selection.includeRowSpaceBasis {
+                let rowBasisVectors = rowSpaceBasis(from: rankSummary.reduced)
+                answerSegments.append("dim Row(A) = \(rowBasisVectors.count)")
+                diagnostics.append("Row(A) basis: \(inlineBasis(rowBasisVectors)).")
+                steps.append("Used nonzero rows of RREF to witness a row-space basis.")
+                if !rowBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(rowBasisVectors, rowCount: columns)),
+                                source: "Analyze row space basis (vectors as columns)"
+                            )
+                        )
                     )
+                }
+            }
+
+            if selection.includeNullSpaceBasis {
+                let nullBasisVectors = nullSpaceBasis(
+                    from: rankSummary.reduced,
+                    pivotColumns: rankSummary.pivotColumns,
+                    columnCount: columns
                 )
-            )
-            steps.append("Set each free variable to 1 (others 0) to construct null-space basis vectors.")
-        } else {
-            steps.append("No free variables remain, so Null(A) is the trivial subspace {0}.")
-        }
+                answerSegments.append("dim Null(A) = \(nullBasisVectors.count)")
+                diagnostics.append("Null(A) basis: \(inlineBasis(nullBasisVectors)).")
+                if !nullBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(nullBasisVectors, rowCount: columns)),
+                                source: "Analyze null space basis (vectors as columns)"
+                            )
+                        )
+                    )
+                    steps.append("Set each free variable to 1 (others 0) to construct null-space basis vectors.")
+                } else {
+                    steps.append("No free variables remain, so Null(A) is the trivial subspace {0}.")
+                }
+            }
 
-        if rows == columns {
-            let traceValue = trace(of: parsedMatrix)
-            let determinantSummary = determinant(of: parsedMatrix)
-            let inverseSummary = inverse(of: parsedMatrix)
-
-            answerSegments.insert("det(A) = \(determinantSummary.value.token)", at: 0)
-            answerSegments.append("trace(A) = \(traceValue.token)")
-
-            diagnostics.append("Trace(A): \(traceValue.token).")
-            diagnostics.append("Determinant: \(determinantSummary.value.token).")
-            diagnostics.append(
-                inverseSummary.inverse == nil
-                ? "Inverse: matrix is singular."
-                : "Inverse: matrix is invertible."
-            )
-
-            steps.append(contentsOf: determinantSummary.steps.prefix(3))
-            steps.append(contentsOf: inverseSummary.steps.prefix(3))
-
-            if let inverseMatrix = inverseSummary.inverse {
-                let inverseInline = inlineMatrix(inverseMatrix)
-                answerSegments.append("inverse(A): available")
-                answerSegments.append("inverse(A) = \(inverseInline)")
-                diagnostics.append("Inverse(A): \(inverseInline).")
+            if selection.includeRowReductionPanels {
                 payloads.append(
                     .matrix(
                         MatrixReusablePayload(
-                            entries: stringify(inverseMatrix),
-                            source: "Analyze inverse matrix"
+                            entries: stringify(rankSummary.reduced),
+                            source: "Analyze RREF matrix"
                         )
                     )
                 )
-            } else {
-                answerSegments.append("inverse(A): not available (singular)")
             }
-        } else {
-            diagnostics.append("Trace, determinant, and inverse require a square matrix.")
-            answerSegments.append("trace(A), det(A), inverse(A): square matrices only")
+        }
+
+        if selection.needsSquareMetrics {
+            if rows == columns {
+                if selection.includeTrace {
+                    let traceValue = trace(of: parsedMatrix)
+                    answerSegments.append("trace(A) = \(traceValue.token)")
+                    diagnostics.append("Trace(A): \(traceValue.token).")
+                }
+
+                if selection.includeDeterminant {
+                    let determinantSummary = determinant(of: parsedMatrix)
+                    answerSegments.insert("det(A) = \(determinantSummary.value.token)", at: 0)
+                    diagnostics.append("Determinant: \(determinantSummary.value.token).")
+                    steps.append(contentsOf: determinantSummary.steps.prefix(3))
+                }
+
+                if selection.includeInverse {
+                    let inverseSummary = inverse(of: parsedMatrix)
+                    diagnostics.append(
+                        inverseSummary.inverse == nil
+                            ? "Inverse: matrix is singular."
+                            : "Inverse: matrix is invertible."
+                    )
+                    steps.append(contentsOf: inverseSummary.steps.prefix(3))
+                    if let inverseMatrix = inverseSummary.inverse {
+                        let inverseInline = inlineMatrix(inverseMatrix)
+                        answerSegments.append("inverse(A): available")
+                        answerSegments.append("inverse(A) = \(inverseInline)")
+                        diagnostics.append("Inverse(A): \(inverseInline).")
+                        payloads.append(
+                            .matrix(
+                                MatrixReusablePayload(
+                                    entries: stringify(inverseMatrix),
+                                    source: "Analyze inverse matrix"
+                                )
+                            )
+                        )
+                    } else {
+                        answerSegments.append("inverse(A): not available (singular)")
+                    }
+                }
+            } else {
+                var unsupported: [String] = []
+                if selection.includeTrace { unsupported.append("trace(A)") }
+                if selection.includeDeterminant { unsupported.append("det(A)") }
+                if selection.includeInverse { unsupported.append("inverse(A)") }
+                if !unsupported.isEmpty {
+                    diagnostics.append("Selected square-only metrics require a square matrix.")
+                    answerSegments.append("\(unsupported.joined(separator: ", ")): square matrices only")
+                }
+            }
+        }
+
+        if answerSegments.isEmpty {
+            answerSegments = ["No Analyze outputs selected."]
         }
 
         return MatrixMasterComputationResult(
@@ -675,7 +719,8 @@ public struct MatrixExactEngine: MatrixExactComputing {
         }
 
         var steps: [String] = [
-            "Interpreted domain basis β and codomain basis γ as ordered bases."
+            "Interpreted β = (β_1, ..., β_n) and γ = (γ_1, ..., γ_m) as ordered bases.",
+            "Built B = [β_1 ... β_n] and G = [γ_1 ... γ_m] in standard coordinates."
         ]
         var payloads: [MatrixMasterReusablePayload] = [
             .matrix(
@@ -784,27 +829,52 @@ public struct MatrixExactEngine: MatrixExactComputing {
             )
         }
 
+        let injectiveReason: String
+        if injective {
+            injectiveReason = "Injective criterion: rank(T) = dim(domain) = \(domainDimension), so ker(T) = {0}."
+        } else {
+            injectiveReason = "Injective criterion fails: rank(T) = \(rank) < dim(domain) = \(domainDimension), so nullity(T) = \(nullity) > 0."
+        }
+
+        let surjectiveReason: String
+        if surjective {
+            surjectiveReason = "Surjective criterion: rank(T) = dim(codomain) = \(codomainDimension), so Im(T) = codomain."
+        } else {
+            surjectiveReason = "Surjective criterion fails: rank(T) = \(rank) < dim(codomain) = \(codomainDimension), so Im(T) has smaller dimension."
+        }
+
+        let bijectiveReason: String
+        if domainDimension != codomainDimension {
+            bijectiveReason = "Bijective criterion fails: dim(domain) = \(domainDimension) and dim(codomain) = \(codomainDimension) are different."
+        } else if bijective {
+            bijectiveReason = "Bijective criterion: T is both injective and surjective, so T is bijective."
+        } else {
+            bijectiveReason = "Bijective criterion fails because at least one of injective/surjective is false."
+        }
+
         var diagnostics: [String] = [
             "Mode: Exact (rational arithmetic).",
             "Analyze workflow: linear maps.",
             "Definition: \(definitionKind.title).",
             "Domain dimension: \(domainDimension).",
             "Codomain dimension: \(codomainDimension).",
+            "A_std: \(inlineMatrix(standardMatrix)).",
             "rank(T): \(rank).",
             "nullity(T): \(nullity).",
             "Kernel basis: \(inlineBasis(kernelBasis)).",
             "Range basis: \(inlineBasis(rangeBasis)).",
-            "Injective: \(injective ? "yes" : "no").",
-            "Surjective: \(surjective ? "yes" : "no").",
-            "Bijective: \(bijective ? "yes" : "no").",
+            injectiveReason,
+            surjectiveReason,
+            bijectiveReason,
             "[T]^beta_gamma: \(inlineMatrix(mapBetaGamma))."
         ]
 
         steps.append("Computed kernel and range using exact RREF pivot analysis on A.")
-        steps.append("Computed basis-relative representation [T]^beta_gamma = G^-1 * A * B.")
+        steps.append("Computed [T]_{β→γ} = G^-1 * A_std * B.")
 
         var answerParts: [String] = [
             "T: R^\(domainDimension) -> R^\(codomainDimension)",
+            "A_std = \(inlineMatrix(standardMatrix))",
             "rank(T) = \(rank)",
             "nullity(T) = \(nullity)",
             "kernel dim = \(kernelBasis.count)",
@@ -830,6 +900,10 @@ public struct MatrixExactEngine: MatrixExactComputing {
             answerParts.append("similar via basis change: \(similar ? "yes" : "no")")
             diagnostics.append("C_(gamma<-beta): \(inlineMatrix(betaToGamma)).")
             diagnostics.append("C_(beta<-gamma): \(inlineMatrix(gammaToBeta)).")
+            diagnostics.append("Similarity check: [T]_gamma ?= C_(gamma<-beta) * [T]_beta * C_(beta<-gamma).")
+            diagnostics.append("[T]_beta = \(inlineMatrix(mapBeta)).")
+            diagnostics.append("[T]_gamma = \(inlineMatrix(mapGamma)).")
+            diagnostics.append("C_(gamma<-beta) * [T]_beta * C_(beta<-gamma) = \(inlineMatrix(reconstructedGamma)).")
             if !similar {
                 diagnostics.append("Similarity comparison failed despite equal dimensions; verify that β and γ describe the same ambient space ordering.")
             }

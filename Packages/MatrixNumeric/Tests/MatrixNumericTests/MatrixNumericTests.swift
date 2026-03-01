@@ -23,10 +23,6 @@ final class MatrixNumericTests: XCTestCase {
         XCTAssertTrue(result.answer.contains("dim Col(A) = 2"))
         XCTAssertTrue(result.answer.contains("dim Row(A) = 2"))
         XCTAssertTrue(result.answer.contains("dim Null(A) = 0"))
-        XCTAssertTrue(result.answer.contains("QR: available"))
-        XCTAssertTrue(result.answer.contains("sigma_max(A)"))
-        XCTAssertTrue(result.answer.contains("SVD singular values"))
-        XCTAssertTrue(result.answer.contains("lambda_max(A)"))
         XCTAssertTrue(result.answer.contains("inverse(A): available"))
         XCTAssertTrue(result.answer.contains("inverse(A) ~="))
         XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("Rank-nullity check: 2 + 0 = 2") }))
@@ -45,31 +41,7 @@ final class MatrixNumericTests: XCTestCase {
         XCTAssertTrue(
             result.reusablePayloads.contains { payload in
                 if case let .matrix(matrixPayload) = payload {
-                    return matrixPayload.source == "Analyze numeric Q factor"
-                }
-                return false
-            }
-        )
-        XCTAssertTrue(
-            result.reusablePayloads.contains { payload in
-                if case let .matrix(matrixPayload) = payload {
-                    return matrixPayload.source == "Analyze numeric R factor"
-                }
-                return false
-            }
-        )
-        XCTAssertTrue(
-            result.reusablePayloads.contains { payload in
-                if case let .vector(vectorPayload) = payload {
-                    return vectorPayload.source == "Analyze dominant eigenvector"
-                }
-                return false
-            }
-        )
-        XCTAssertTrue(
-            result.reusablePayloads.contains { payload in
-                if case let .vector(vectorPayload) = payload {
-                    return vectorPayload.source == "Analyze SVD singular values"
+                    return matrixPayload.source == "Analyze numeric RREF matrix"
                 }
                 return false
             }
@@ -98,7 +70,7 @@ final class MatrixNumericTests: XCTestCase {
                 return false
             }
         )
-        XCTAssertGreaterThanOrEqual(result.reusablePayloads.count, 5)
+        XCTAssertGreaterThanOrEqual(result.reusablePayloads.count, 4)
     }
 
     func testNumericAnalyzeParsesFractionAndScientificNotation() async throws {

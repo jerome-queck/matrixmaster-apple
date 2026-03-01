@@ -32,6 +32,10 @@ struct MobileRootView: View {
         }
         .task {
             await coordinator.restoreLatestSnapshot()
+            coordinator.didSelectDestination(selectedDestination)
+        }
+        .onChange(of: selectedDestination) { _, newDestination in
+            coordinator.didSelectDestination(newDestination)
         }
         .accessibilityIdentifier("mobile-root-tab-view")
     }

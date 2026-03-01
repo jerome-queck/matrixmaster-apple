@@ -16,13 +16,13 @@ public struct MatrixMasterFeatureDestinationView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 MatrixMasterSyncBadge(state: coordinator.syncState)
 
-                MatrixMasterDestinationPlaceholder(
+                MatrixResultPresentationView(
                     destination: destination,
                     mode: coordinator.selectedMode,
-                    lastResult: coordinator.lastResult
+                    lastResult: coordinator.result(for: destination)
                 )
 
                 editorSurface
@@ -74,15 +74,21 @@ public struct MatrixMasterFeatureDestinationView: View {
 
     @ViewBuilder
     private var reuseActionsSurface: some View {
-        if let result = coordinator.lastResult,
+        if let result = coordinator.result(for: destination),
            !result.reusablePayloads.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Reuse Actions")
                     .font(.headline)
 
                 ForEach(reuseActions(for: result), id: \.id) { action in
-                    Button(reuseActionTitle(for: action.payload, target: action.target)) {
+                    Button {
                         coordinator.applyReusePayload(action.payload, into: action.target)
+                    } label: {
+                        MatrixInlineMathText(
+                            reuseActionTitle(for: action.payload, target: action.target),
+                            style: .body
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("reuse-payload-\(action.payloadIndex)-to-\(action.target.rawValue)")
@@ -141,21 +147,22 @@ public struct MatrixMasterFeatureDestinationView: View {
                 title: "Solve System Input"
             )
         case .operate:
-            MatrixGridEditorView(
-                matrix: $coordinator.matrixDraft,
-                title: "A (primary matrix)",
-                showsRandomizeButton: true
-            )
             OperateConfigurationView(
                 operateKind: $coordinator.operateKind,
                 scalarToken: $coordinator.operateScalarToken,
                 exponent: $coordinator.operateExponent,
                 expression: $coordinator.operateExpression
             )
+            MatrixGridEditorView(
+                matrix: $coordinator.matrixDraft,
+                title: "A (primary matrix)",
+                showsRandomizeButton: true
+            )
             operateAuxiliaryInputs
         case .analyze:
             AnalyzeConfigurationView(
                 analyzeKind: $coordinator.analyzeKind,
+                matrixPropertiesSelection: $coordinator.analyzeMatrixPropertiesSelection,
                 linearMapDefinitionKind: $coordinator.linearMapDefinitionKind
             )
             analyzeAuxiliaryInputs
@@ -163,6 +170,7 @@ public struct MatrixMasterFeatureDestinationView: View {
             SpacesConfigurationView(
                 spacesKind: $coordinator.spacesKind,
                 spacesPresetKind: $coordinator.spacesPresetKind,
+                spacesOutputSelection: $coordinator.spacesOutputSelection,
                 polynomialDegree: $coordinator.spacesPolynomialDegree,
                 matrixSpaceRows: $coordinator.spacesMatrixRowCount,
                 matrixSpaceColumns: $coordinator.spacesMatrixColumnCount,
@@ -219,45 +227,85 @@ public struct MatrixMasterFeatureDestinationView: View {
                 title: "Analyze Matrix Input",
                 showsRandomizeButton: true
             )
-            BasisEditorView(basis: $coordinator.basisDraft)
+            BasisEditorView(
+                basis: $coordinator.basisDraft,
+                showsDimensionControls: false
+            )
         case .spanMembership:
-            BasisEditorView(basis: $coordinator.basisDraft)
+            BasisEditorView(
+                basis: $coordinator.basisDraft,
+                showsDimensionControls: false
+            )
             VectorEditorView(
                 vector: $coordinator.vectorDraft,
                 title: "Target vector x",
                 showsNameField: true
             )
         case .independence:
-            BasisEditorView(basis: $coordinator.basisDraft)
+            BasisEditorView(
+                basis: $coordinator.basisDraft,
+                showsDimensionControls: false
+            )
         case .coordinates:
-            BasisEditorView(basis: $coordinator.basisDraft)
+            BasisEditorView(
+                basis: $coordinator.basisDraft,
+                showsDimensionControls: false
+            )
             VectorEditorView(
                 vector: $coordinator.vectorDraft,
-                title: "Vector x for coordinates [x]_beta",
+                title: "Vector x for coordinates [x]₍β₎",
                 showsNameField: true
             )
         case .linearMaps:
-            BasisEditorView(
-                basis: $coordinator.basisDraft,
-                title: "Domain basis β"
-            )
-            BasisEditorView(
-                basis: $coordinator.secondaryBasisDraft,
-                title: "Codomain / comparison basis γ (or β')"
-            )
-            switch coordinator.linearMapDefinitionKind {
-            case .matrix:
-                MatrixGridEditorView(
-                    matrix: $coordinator.matrixDraft,
-                    title: "Map matrix A (standard coordinates)",
-                    showsRandomizeButton: true
+            Group {
+                BasisEditorView(
+                    basis: $coordinator.basisDraft,
+                    title: "Domain basis β",
+                    showsDimensionControls: false
                 )
-            case .basisImages:
-                MatrixGridEditorView(
-                    matrix: $coordinator.secondaryMatrixDraft,
-                    title: "Image matrix Y = [T(b1) ... T(bn)]",
-                    showsRandomizeButton: true
+                BasisEditorView(
+                    basis: $coordinator.secondaryBasisDraft,
+                    title: "Codomain / comparison basis γ (or β')",
+                    showsDimensionControls: false
                 )
+                switch coordinator.linearMapDefinitionKind {
+                case .matrix:
+                    MatrixGridEditorView(
+                        matrix: $coordinator.matrixDraft,
+                        title: "Map matrix A (standard coordinates)",
+                        showsRandomizeButton: true
+                    )
+                case .basisImages:
+                    MatrixGridEditorView(
+                        matrix: $coordinator.secondaryMatrixDraft,
+                        title: "Image matrix Y = [T(b1) ... T(bn)]",
+                        showsRandomizeButton: true
+                    )
+                }
+            }
+            .onAppear {
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.linearMapDefinitionKind) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.basisDraft.vectorCount) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.secondaryBasisDraft.vectorCount) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.basisDraft.dimension) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.secondaryBasisDraft.dimension) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromBasis()
+            }
+            .onChange(of: coordinator.matrixDraft.rows) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromMatrix()
+            }
+            .onChange(of: coordinator.matrixDraft.columns) { _, _ in
+                coordinator.synchronizeAnalyzeLinearMapFromMatrix()
             }
         }
     }
@@ -266,16 +314,16 @@ public struct MatrixMasterFeatureDestinationView: View {
     private var spacesAuxiliaryInputs: some View {
         switch coordinator.spacesKind {
         case .basisTestExtract, .basisExtendPrune:
-            BasisEditorView(
+            spacesEditor(
                 basis: $coordinator.basisDraft,
                 title: "Generating Set U"
             )
         case .subspaceSum, .subspaceIntersection, .directSumCheck:
-            BasisEditorView(
+            spacesEditor(
                 basis: $coordinator.basisDraft,
                 title: "Generating Set U"
             )
-            BasisEditorView(
+            spacesEditor(
                 basis: $coordinator.secondaryBasisDraft,
                 title: "Generating Set W"
             )
@@ -341,6 +389,33 @@ public struct MatrixMasterFeatureDestinationView: View {
             )
         case .power, .trace, .transpose:
             EmptyView()
+        }
+    }
+
+    @ViewBuilder
+    private func spacesEditor(
+        basis: Binding<BasisDraftInput>,
+        title: String
+    ) -> some View {
+        switch coordinator.spacesPresetKind {
+        case .none:
+            BasisEditorView(
+                basis: basis,
+                title: title
+            )
+        case .polynomialSpace:
+            PolynomialSpaceElementsEditorView(
+                basis: basis,
+                polynomialDegree: $coordinator.spacesPolynomialDegree,
+                title: "\(title) (Polynomial Entry)"
+            )
+        case .matrixSpace:
+            MatrixSpaceElementsEditorView(
+                basis: basis,
+                rowCount: $coordinator.spacesMatrixRowCount,
+                columnCount: $coordinator.spacesMatrixColumnCount,
+                title: "\(title) (Matrix Entry)"
+            )
         }
     }
 }

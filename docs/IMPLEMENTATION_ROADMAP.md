@@ -18,8 +18,8 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 - Phase 3 checkpoint 2 is complete: Analyze now supports span membership, independence/dependence, and coordinate-vector workflows with witness certificates in exact and numeric modes.
 - Phase 3 checkpoint 3 is complete: dedicated Spaces workflows now cover basis testing/extraction, basis extension/pruning, and subspace sum/intersection/direct-sum helpers in exact and numeric modes, with coordinate-family diagnostics expanded for non-unique coordinate solutions.
 - Phase 4 (Linear maps and basis changes) is complete.
-- Phase 5 (UI-first math presentation overhaul) is next.
-- Phase 6 (Orthogonality and least squares) follows Phase 5.
+- Phase 5 (UI-first math presentation overhaul) is complete.
+- Phase 6 (Orthogonality and least squares) is next.
 - Phase 7 (Advanced topics) follows Phase 6.
 
 ---
@@ -196,7 +196,6 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
 ### Goals
 - make math output look like math objects instead of plain text blocks
 - deliver structured rendering for matrix/vector/polynomial result payloads
-- add LaTeX-ready copy/export formatting for displayable math objects
 - expose explicit REF/RREF matrix panels in Solve and elimination-backed Analyze workflows
 - ship Spaces editor UX v2:
   - native polynomial-space element entry (coefficient-form over `{1, x, x^2, ...}`)
@@ -207,22 +206,26 @@ Do not wait to "finish the engine" before shipping usable workflows. But also do
   - optional derivation/steps object
 - preserve accessibility/performance parity on iPhone, iPad, and Mac while introducing richer rendering
 
-### Checkpoint intent
-- checkpoint 1:
-  - shared structured math object renderer (matrix grid, vector stack, polynomial coefficient view)
-  - result-surface component migration from plain-text blocks to object-aware views
-- checkpoint 2:
-  - Solve/Analyze REF/RREF object panels with reuse actions
-  - copy/export modes (`plain`, `markdown`, `latex`) from rendered objects
-- checkpoint 3:
-  - Spaces native polynomial/matrix-space element editors
-  - validation and parsing UX tailored to polynomial/matrix object entry
+### Completion status (2026-03-01)
+- checkpoint 1 complete:
+  - shared structured math object model and renderer now cover matrix grid/bracket, vector stack, and polynomial coefficient views.
+  - shared result surfaces now render object-aware cards with plain-text fallback.
+- checkpoint 2 complete:
+  - Solve and elimination-backed Analyze now show explicit REF/RREF matrix panels.
+  - duplicate object rendering between row-reduction panels and object cards is now filtered.
+- checkpoint 3 complete:
+  - Spaces now supports native polynomial-space element editors.
+  - Spaces now supports native matrix-space element editors that map to coordinate-vector internals.
+- cross-platform verification complete:
+  - package tests (`MatrixDomain`, `MatrixUI`, `MatrixFeatures`) pass.
+  - app suites (`MatrixMasterMobile`, `MatrixMasterMac`) pass, including new Phase 5 UI coverage.
 
 ### Exit criteria
 - major result surfaces render matrix/vector/polynomial outputs as structured math objects
-- users can copy/export key objects in LaTeX-ready format
 - Solve/Analyze row-reduction workflows expose explicit REF/RREF matrix views
 - spaces workflows support direct polynomial/matrix-style element entry in addition to basis presets
+- follow-up backlog item:
+  - reintroduce result-object copy/export controls (`plain`, `markdown`, `latex`) only after final formatting UX pass
 
 ---
 

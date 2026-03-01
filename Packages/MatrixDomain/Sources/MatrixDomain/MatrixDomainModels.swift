@@ -126,7 +126,7 @@ public enum MatrixOperateKind: String, CaseIterable, Codable, Sendable {
         case .trace:
             return "trace(A)"
         case .power:
-            return "A^k"
+            return "Aᵏ"
         case .matrixVectorProduct:
             return "A * v"
         case .vectorAdd:
@@ -159,6 +159,87 @@ public enum MatrixAnalyzeKind: String, CaseIterable, Codable, Sendable {
         case .linearMaps:
             return "Linear Maps"
         }
+    }
+}
+
+public struct MatrixAnalyzeMatrixPropertiesSelection: Equatable, Codable, Sendable {
+    public var includeRankNullity: Bool
+    public var includeColumnSpaceBasis: Bool
+    public var includeRowSpaceBasis: Bool
+    public var includeNullSpaceBasis: Bool
+    public var includeDeterminant: Bool
+    public var includeTrace: Bool
+    public var includeInverse: Bool
+    public var includeRowReductionPanels: Bool
+
+    public init(
+        includeRankNullity: Bool = true,
+        includeColumnSpaceBasis: Bool = true,
+        includeRowSpaceBasis: Bool = true,
+        includeNullSpaceBasis: Bool = true,
+        includeDeterminant: Bool = true,
+        includeTrace: Bool = true,
+        includeInverse: Bool = true,
+        includeRowReductionPanels: Bool = true
+    ) {
+        self.includeRankNullity = includeRankNullity
+        self.includeColumnSpaceBasis = includeColumnSpaceBasis
+        self.includeRowSpaceBasis = includeRowSpaceBasis
+        self.includeNullSpaceBasis = includeNullSpaceBasis
+        self.includeDeterminant = includeDeterminant
+        self.includeTrace = includeTrace
+        self.includeInverse = includeInverse
+        self.includeRowReductionPanels = includeRowReductionPanels
+    }
+
+    public static let all = MatrixAnalyzeMatrixPropertiesSelection()
+
+    public var hasAnySelection: Bool {
+        includeRankNullity
+            || includeColumnSpaceBasis
+            || includeRowSpaceBasis
+            || includeNullSpaceBasis
+            || includeDeterminant
+            || includeTrace
+            || includeInverse
+            || includeRowReductionPanels
+    }
+
+    public var needsRREFComputation: Bool {
+        includeRankNullity
+            || includeColumnSpaceBasis
+            || includeRowSpaceBasis
+            || includeNullSpaceBasis
+            || includeRowReductionPanels
+    }
+
+    public var needsSquareMetrics: Bool {
+        includeDeterminant || includeTrace || includeInverse
+    }
+}
+
+public struct MatrixSpacesOutputSelection: Equatable, Codable, Sendable {
+    public var includeConclusion: Bool
+    public var includeMathObjects: Bool
+    public var includeDiagnostics: Bool
+    public var includeSteps: Bool
+
+    public init(
+        includeConclusion: Bool = true,
+        includeMathObjects: Bool = true,
+        includeDiagnostics: Bool = true,
+        includeSteps: Bool = true
+    ) {
+        self.includeConclusion = includeConclusion
+        self.includeMathObjects = includeMathObjects
+        self.includeDiagnostics = includeDiagnostics
+        self.includeSteps = includeSteps
+    }
+
+    public static let all = MatrixSpacesOutputSelection()
+
+    public var hasAnySelection: Bool {
+        includeConclusion || includeMathObjects || includeDiagnostics || includeSteps
     }
 }
 
@@ -209,9 +290,9 @@ public enum MatrixSpacesPresetKind: String, CaseIterable, Codable, Sendable {
         case .none:
             return "None"
         case .polynomialSpace:
-            return "Polynomial Space P_n(F)"
+            return "Polynomial Space Pₙ(F)"
         case .matrixSpace:
-            return "Matrix Space M_mxn(F)"
+            return "Matrix Space Mₘ×ₙ(F)"
         }
     }
 }
@@ -231,8 +312,10 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
     public var basisVectors: [[String]]?
     public var secondaryBasisVectors: [[String]]?
     public var analyzeKind: MatrixAnalyzeKind?
+    public var analyzeMatrixPropertiesSelection: MatrixAnalyzeMatrixPropertiesSelection?
     public var spacesKind: MatrixSpacesKind?
     public var spacesPresetKind: MatrixSpacesPresetKind?
+    public var spacesOutputSelection: MatrixSpacesOutputSelection?
     public var spacesPolynomialDegree: Int?
     public var spacesMatrixRowCount: Int?
     public var spacesMatrixColumnCount: Int?
@@ -253,8 +336,10 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
         basisVectors: [[String]]? = nil,
         secondaryBasisVectors: [[String]]? = nil,
         analyzeKind: MatrixAnalyzeKind? = nil,
+        analyzeMatrixPropertiesSelection: MatrixAnalyzeMatrixPropertiesSelection? = nil,
         spacesKind: MatrixSpacesKind? = nil,
         spacesPresetKind: MatrixSpacesPresetKind? = nil,
+        spacesOutputSelection: MatrixSpacesOutputSelection? = nil,
         spacesPolynomialDegree: Int? = nil,
         spacesMatrixRowCount: Int? = nil,
         spacesMatrixColumnCount: Int? = nil,
@@ -274,12 +359,316 @@ public struct MatrixMasterComputationRequest: Equatable, Codable, Sendable {
         self.basisVectors = basisVectors
         self.secondaryBasisVectors = secondaryBasisVectors
         self.analyzeKind = analyzeKind
+        self.analyzeMatrixPropertiesSelection = analyzeMatrixPropertiesSelection
         self.spacesKind = spacesKind
         self.spacesPresetKind = spacesPresetKind
+        self.spacesOutputSelection = spacesOutputSelection
         self.spacesPolynomialDegree = spacesPolynomialDegree
         self.spacesMatrixRowCount = spacesMatrixRowCount
         self.spacesMatrixColumnCount = spacesMatrixColumnCount
         self.linearMapDefinitionKind = linearMapDefinitionKind
+    }
+}
+
+public struct MatrixMathMatrixObject: Equatable, Codable, Sendable, Identifiable {
+    public var id: UUID
+    public var label: String
+    public var entries: [[String]]
+
+    public init(
+        id: UUID = UUID(),
+        label: String,
+        entries: [[String]]
+    ) {
+        self.id = id
+        self.label = label
+        self.entries = entries
+    }
+}
+
+public struct MatrixMathVectorObject: Equatable, Codable, Sendable, Identifiable {
+    public var id: UUID
+    public var label: String
+    public var entries: [String]
+
+    public init(
+        id: UUID = UUID(),
+        label: String,
+        entries: [String]
+    ) {
+        self.id = id
+        self.label = label
+        self.entries = entries
+    }
+}
+
+public struct MatrixMathPolynomialObject: Equatable, Codable, Sendable, Identifiable {
+    public var id: UUID
+    public var label: String
+    public var coefficients: [String]
+    public var variableSymbol: String
+
+    public init(
+        id: UUID = UUID(),
+        label: String,
+        coefficients: [String],
+        variableSymbol: String = "x"
+    ) {
+        self.id = id
+        self.label = label
+        self.coefficients = coefficients
+        self.variableSymbol = variableSymbol
+    }
+}
+
+public enum MatrixMathObject: Equatable, Codable, Sendable, Identifiable {
+    case matrix(MatrixMathMatrixObject)
+    case vector(MatrixMathVectorObject)
+    case polynomial(MatrixMathPolynomialObject)
+
+    public var id: UUID {
+        switch self {
+        case let .matrix(object):
+            return object.id
+        case let .vector(object):
+            return object.id
+        case let .polynomial(object):
+            return object.id
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case let .matrix(object):
+            return object.label
+        case let .vector(object):
+            return object.label
+        case let .polynomial(object):
+            return object.label
+        }
+    }
+}
+
+public enum MatrixMathExportFormat: String, CaseIterable, Codable, Sendable {
+    case plain
+    case markdown
+    case latex
+}
+
+public enum MatrixMathExportFormatter {
+    public static func format(_ object: MatrixMathObject, as format: MatrixMathExportFormat) -> String {
+        switch format {
+        case .plain:
+            return plainText(for: object)
+        case .markdown:
+            return markdown(for: object)
+        case .latex:
+            return latex(for: object)
+        }
+    }
+
+    public static func plainText(for object: MatrixMathObject) -> String {
+        switch object {
+        case let .matrix(matrix):
+            return "\(matrix.label): \(inlineMatrix(matrix.entries))"
+        case let .vector(vector):
+            return "\(vector.label): [\(vector.entries.joined(separator: ", "))]"
+        case let .polynomial(polynomial):
+            return "\(polynomial.label): \(inlinePolynomial(coefficients: polynomial.coefficients, variable: polynomial.variableSymbol))"
+        }
+    }
+
+    public static func markdown(for object: MatrixMathObject) -> String {
+        switch object {
+        case let .matrix(matrix):
+            return "**\(matrix.label)**\n\n`\(inlineMatrix(matrix.entries))`"
+        case let .vector(vector):
+            return "**\(vector.label)**\n\n`[\(vector.entries.joined(separator: ", "))]`"
+        case let .polynomial(polynomial):
+            return "**\(polynomial.label)**\n\n`\(inlinePolynomial(coefficients: polynomial.coefficients, variable: polynomial.variableSymbol))`"
+        }
+    }
+
+    public static func latex(for object: MatrixMathObject) -> String {
+        switch object {
+        case let .matrix(matrix):
+            return "\(sanitizeLabelForLatex(matrix.label)) = \(latexMatrix(matrix.entries))"
+        case let .vector(vector):
+            return "\(sanitizeLabelForLatex(vector.label)) = \(latexColumnVector(vector.entries))"
+        case let .polynomial(polynomial):
+            return "\(sanitizeLabelForLatex(polynomial.label)) = \(latexPolynomial(coefficients: polynomial.coefficients, variable: polynomial.variableSymbol))"
+        }
+    }
+
+    private static func inlineMatrix(_ entries: [[String]]) -> String {
+        let rows = entries.map { row in
+            "[\(row.joined(separator: ", "))]"
+        }
+        return "[\(rows.joined(separator: ", "))]"
+    }
+
+    private static func inlinePolynomial(coefficients: [String], variable: String) -> String {
+        let trimmed = coefficients.map(cleanToken)
+        guard !trimmed.isEmpty else {
+            return "0"
+        }
+
+        var terms: [String] = []
+        for power in trimmed.indices.reversed() {
+            let coefficient = trimmed[power]
+            guard coefficient != "0" else {
+                continue
+            }
+
+            switch power {
+            case 0:
+                terms.append(coefficient)
+            case 1:
+                if coefficient == "1" {
+                    terms.append(variable)
+                } else if coefficient == "-1" {
+                    terms.append("-\(variable)")
+                } else {
+                    terms.append("\(coefficient)\(variable)")
+                }
+            default:
+                if coefficient == "1" {
+                    terms.append("\(variable)^\(power)")
+                } else if coefficient == "-1" {
+                    terms.append("-\(variable)^\(power)")
+                } else {
+                    terms.append("\(coefficient)\(variable)^\(power)")
+                }
+            }
+        }
+
+        if terms.isEmpty {
+            return "0"
+        }
+
+        return terms.enumerated().map { index, term in
+            if index == 0 {
+                return term
+            }
+
+            if term.hasPrefix("-") {
+                return "- \(term.dropFirst())"
+            }
+            return "+ \(term)"
+        }.joined(separator: " ")
+    }
+
+    private static func latexMatrix(_ entries: [[String]]) -> String {
+        let rows = entries.map { row in
+            row.map(latexToken).joined(separator: " & ")
+        }.joined(separator: #" \\ "#)
+        return #"\begin{bmatrix} "# + rows + #" \end{bmatrix}"#
+    }
+
+    private static func latexColumnVector(_ entries: [String]) -> String {
+        let rows = entries.map(latexToken).joined(separator: #" \\ "#)
+        return #"\begin{bmatrix} "# + rows + #" \end{bmatrix}"#
+    }
+
+    private static func latexPolynomial(coefficients: [String], variable: String) -> String {
+        let cleanedVariable = sanitizeVariable(variable)
+        guard !coefficients.isEmpty else {
+            return "0"
+        }
+
+        var terms: [String] = []
+        for power in coefficients.indices.reversed() {
+            let rawCoefficient = cleanToken(coefficients[power])
+            guard rawCoefficient != "0" else {
+                continue
+            }
+
+            let coefficient = latexToken(rawCoefficient)
+            switch power {
+            case 0:
+                terms.append(coefficient)
+            case 1:
+                if rawCoefficient == "1" {
+                    terms.append(cleanedVariable)
+                } else if rawCoefficient == "-1" {
+                    terms.append("-\(cleanedVariable)")
+                } else {
+                    terms.append("\(coefficient)\(cleanedVariable)")
+                }
+            default:
+                if rawCoefficient == "1" {
+                    terms.append("\(cleanedVariable)^{\(power)}")
+                } else if rawCoefficient == "-1" {
+                    terms.append("-\(cleanedVariable)^{\(power)}")
+                } else {
+                    terms.append("\(coefficient)\(cleanedVariable)^{\(power)}")
+                }
+            }
+        }
+
+        if terms.isEmpty {
+            return "0"
+        }
+
+        return terms.enumerated().map { index, term in
+            if index == 0 {
+                return term
+            }
+            if term.hasPrefix("-") {
+                return "- " + term.dropFirst()
+            }
+            return "+ \(term)"
+        }.joined(separator: " ")
+    }
+
+    private static func latexToken(_ token: String) -> String {
+        let cleaned = cleanToken(token)
+        if cleaned.contains("/") {
+            let parts = cleaned.split(separator: "/", omittingEmptySubsequences: false)
+            if parts.count == 2, !parts[1].isEmpty {
+                let numerator = String(parts[0])
+                let denominator = String(parts[1])
+                return #"\frac{"# + numerator + "}{" + denominator + "}"
+            }
+        }
+        return cleaned
+    }
+
+    private static func cleanToken(_ token: String) -> String {
+        token.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func sanitizeLabelForLatex(_ label: String) -> String {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            return "x"
+        }
+
+        return trimmed.replacingOccurrences(of: " ", with: #"\ "#)
+    }
+
+    private static func sanitizeVariable(_ variable: String) -> String {
+        let trimmed = variable.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "x" : trimmed
+    }
+}
+
+public struct MatrixRowReductionPanels: Equatable, Codable, Sendable {
+    public var sourceLabel: String
+    public var refEntries: [[String]]
+    public var rrefEntries: [[String]]
+    public var separatorAfterColumn: Int?
+
+    public init(
+        sourceLabel: String,
+        refEntries: [[String]],
+        rrefEntries: [[String]],
+        separatorAfterColumn: Int? = nil
+    ) {
+        self.sourceLabel = sourceLabel
+        self.refEntries = refEntries
+        self.rrefEntries = rrefEntries
+        self.separatorAfterColumn = separatorAfterColumn
     }
 }
 
@@ -288,17 +677,23 @@ public struct MatrixMasterComputationResult: Equatable, Codable, Sendable {
     public var diagnostics: [String]
     public var steps: [String]
     public var reusablePayloads: [MatrixMasterReusablePayload]
+    public var structuredObjects: [MatrixMathObject]
+    public var rowReductionPanels: MatrixRowReductionPanels?
 
     public init(
         answer: String,
         diagnostics: [String],
         steps: [String],
-        reusablePayloads: [MatrixMasterReusablePayload] = []
+        reusablePayloads: [MatrixMasterReusablePayload] = [],
+        structuredObjects: [MatrixMathObject] = [],
+        rowReductionPanels: MatrixRowReductionPanels? = nil
     ) {
         self.answer = answer
         self.diagnostics = diagnostics
         self.steps = steps
         self.reusablePayloads = reusablePayloads
+        self.structuredObjects = structuredObjects
+        self.rowReductionPanels = rowReductionPanels
     }
 }
 

@@ -36,6 +36,14 @@ struct MacRootView: View {
         .frame(minWidth: 960, minHeight: 640)
         .task {
             await coordinator.restoreLatestSnapshot()
+            if let selectedDestination {
+                coordinator.didSelectDestination(selectedDestination)
+            }
+        }
+        .onChange(of: selectedDestination) { _, newDestination in
+            if let newDestination {
+                coordinator.didSelectDestination(newDestination)
+            }
         }
     }
 

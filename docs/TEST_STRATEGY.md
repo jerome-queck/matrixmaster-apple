@@ -74,7 +74,7 @@ Cover:
 - linear-map similarity diagnostics for both endomorphism and non-endomorphism inputs
 - structured matrix/vector/polynomial result rendering flows
 - REF/RREF result-panel visibility and reuse actions for elimination workflows
-- copy/export format parity checks for plain text, markdown, and LaTeX-ready output
+- destination-scoped result visibility checks (no cross-tab answer/result bleed)
 
 ### 7. UI tests
 Cover:
@@ -87,6 +87,14 @@ Cover:
 - simulator launch resilience for mobile UI runs (retry or reset when preflight-busy launch faults occur)
 - matrix-looking result layout fidelity across iPhone, iPad, and Mac
 - accessibility labels and reading order for structured math object cards
+
+### Phase 5 completion verification (2026-03-01)
+Validated in this checkpoint with:
+- `swift test --package-path Packages/MatrixDomain`
+- `swift test --package-path Packages/MatrixUI`
+- `swift test --package-path Packages/MatrixFeatures`
+- `xcodebuild -workspace MatrixMaster.xcworkspace -scheme MatrixMasterMobile -destination "platform=iOS Simulator,name=iPhone 17,OS=26.2" test`
+- `xcodebuild -workspace MatrixMaster.xcworkspace -scheme MatrixMasterMac -destination "platform=macOS" test`
 
 ## Test fixture design
 

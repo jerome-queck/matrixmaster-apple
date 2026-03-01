@@ -3,11 +3,16 @@
 ## Goal
 Make Phase 5 a UI-first overhaul that upgrades how math is presented and entered: matrix-looking result rendering, LaTeX-ready output paths, explicit REF/RREF visibility, and richer abstract-space editors.
 
+## Status
+- Completed on 2026-03-01.
+- Completed with one scoped follow-up.
+- Verification passed for package tests (`MatrixDomain`, `MatrixUI`, `MatrixFeatures`) and app suites (`MatrixMasterMobile`, `MatrixMasterMac`).
+- Follow-up scope: result-object copy/export controls (`plain`, `markdown`, `latex`) were removed from UI and moved to backlog.
+
 ## Scope
 - Replace plain-text-first result rendering with structured math object rendering across Solve/Analyze/Operate/Spaces.
 - Introduce matrix-looking output surfaces (grid/bracket matrix views, vector stack views, polynomial object views).
 - Add explicit REF/RREF result panels for Solve and elimination-backed Analyze workflows.
-- Add LaTeX-ready copy/export pathways for matrix/vector/polynomial results.
 - Add native polynomial-space and matrix-space element editors (while retaining coordinate/basis internals).
 - Apply cross-platform accessibility/performance validation for richer rendering on iPhone, iPad, and Mac.
 - Keep existing computational correctness untouched while overhauling presentation/input UX.
@@ -42,9 +47,8 @@ Make Phase 5 a UI-first overhaul that upgrades how math is presented and entered
 - Add shared structured math view models and reusable SwiftUI renderers for matrix/vector/polynomial objects.
 - Migrate result surfaces from text-only cards to object-aware cards with plain-text fallback where needed.
 - Add REF/RREF matrix panels with reuse actions and consistent accessibility labels.
-- Add LaTeX-ready formatting adapters for copy/export actions and persistence-backed export pathways.
 - Add polynomial/matrix-space native element editors and wiring into Spaces workflows.
-- Add regression tests for rendering object semantics, copy/export formatting, and new editor entry flows.
+- Add regression tests for rendering object semantics and new editor entry flows.
 - Update roadmap/matrix/flow/spec docs and add checkpoint session logs.
 
 ## Tests to add or update
@@ -68,10 +72,11 @@ Make Phase 5 a UI-first overhaul that upgrades how math is presented and entered
 ## Acceptance criteria
 - Core result surfaces render matrices/vectors/polynomials as structured objects instead of plain text blocks.
 - Solve and elimination-backed Analyze surfaces show explicit REF/RREF matrix panels.
-- Users can copy/export representative result objects in LaTeX-ready form.
+- Result surfaces remain formatting-first and avoid duplicated matrix payload presentation.
 - Spaces supports direct polynomial/matrix-space element entry workflows in addition to existing presets.
 - iPhone, iPad, and Mac UI tests and package tests pass with the new presentation/input surfaces.
 - Phase sequencing in status docs reflects Phase 5 UI overhaul before Phase 6 orthogonality.
+- Copy/export controls are tracked as follow-up backlog scope.
 
 ## Notes
 This task intentionally treats UI/UX math presentation as first-class engineering scope, not a cosmetic post-processing step.

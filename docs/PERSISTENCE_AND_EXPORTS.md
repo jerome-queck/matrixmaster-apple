@@ -121,6 +121,9 @@ For v1, keep single-object exports interoperable rather than inventing a custom 
 - CSV / TSV for tabular matrices/vectors
 - LaTeX / Markdown / plain text for human-facing export
 
+Current UI note:
+- result-object copy/export controls are intentionally disabled and tracked as follow-up UX scope
+
 ## Export targets
 
 Support at least:

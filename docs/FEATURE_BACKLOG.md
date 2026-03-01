@@ -8,13 +8,22 @@ Some items are explicitly scheduled for the next phase, while others remain late
   - richer multi-solution coordinate-family diagnostics (full family parameterization beyond single witness + one nullspace direction)
   - math typography baseline across result surfaces (consistent superscript/subscript/fraction rendering in answer, diagnostics, and steps)
   - abstract-space presets for Spaces workflows (polynomial-space and matrix-space templates, including direct apply actions for generating sets)
+- Completed in Phase 5:
+  - structured matrix rendering in result surfaces (matrix brackets/grid layout instead of plain inline text)
+  - structured vector/polynomial rendering for reusable math objects
+  - explicit REF/RREF matrix panels for Solve and elimination-backed Analyze outputs
+  - native polynomial-space element editors (for example coefficient entry against `{1, x, x^2, ...}`)
+  - native matrix-space element editors that let users enter basis vectors as matrix objects directly
 
-## Phase 5 UI-first overhaul scope
-- structured matrix rendering in result surfaces (matrix brackets/grid layout instead of plain inline text)
-- LaTeX-ready copy/export formatting for matrix/vector/polynomial result objects
-- explicit REF/RREF matrix panels for Solve and elimination-backed Analyze outputs
-- native polynomial-space element editors (for example coefficient entry against `{1, x, x^2, ...}`)
-- native matrix-space element editors that let users enter basis vectors as matrix objects directly
+## Phase 6 orthogonality and least-squares scope (next)
+- inner products, norms, and distance workflows
+- orthogonality checks and orthonormal basis workflows
+- Gram-Schmidt process views
+- projection onto vectors/subspaces and orthogonal complements
+- least-squares solution and residual interpretation
+
+## UI follow-up polish
+- reintroduce result-object copy/export controls (`plain`, `markdown`, `latex`) after final presentation/formatting stabilization
 
 ## Advanced algebra
 - minimal polynomial

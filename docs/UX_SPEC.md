@@ -128,12 +128,15 @@ Every result page should follow this order:
 - decomposition form
 - projection vector
 
-### Phase 5 UI-overhaul priorities
-- render matrix and vector outputs as structured objects (grid/bracket views), not plain text paragraphs
-- render polynomial objects with coefficient-aware formatting rather than generic token strings
-- expose REF/RREF matrices as explicit result panels in elimination workflows
-- keep a consistent card structure for answer, diagnostics, reuse actions, and steps across all destinations
-- support copy/export as plain text, markdown, and LaTeX-ready formats from the same result object model
+### Phase 5 delivered baseline
+- matrix and vector outputs render as structured objects (grid/bracket views), not plain text paragraphs
+- polynomial objects render with coefficient-aware formatting rather than generic token strings
+- REF/RREF matrices are exposed as explicit result panels in elimination workflows
+- answer, diagnostics, reuse actions, and steps follow a consistent card structure across destinations
+- destination switching does not leak result content across tabs; each tab shows only its own computed result history
+
+Follow-up UX item:
+- reintroduce copy/export controls (`plain`, `markdown`, `latex`) only after the formatting pass is finalized
 
 ### Diagnostics examples
 - exact vs approximate

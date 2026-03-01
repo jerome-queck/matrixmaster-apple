@@ -15,9 +15,11 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
     @Published public var basisDraft: BasisDraftInput
     @Published public var secondaryBasisDraft: BasisDraftInput
     @Published public var analyzeKind: MatrixAnalyzeKind
+    @Published public var analyzeMatrixPropertiesSelection: MatrixAnalyzeMatrixPropertiesSelection
     @Published public var linearMapDefinitionKind: MatrixLinearMapDefinitionKind
     @Published public var spacesKind: MatrixSpacesKind
     @Published public var spacesPresetKind: MatrixSpacesPresetKind
+    @Published public var spacesOutputSelection: MatrixSpacesOutputSelection
     @Published public var spacesPolynomialDegree: Int
     @Published public var spacesMatrixRowCount: Int
     @Published public var spacesMatrixColumnCount: Int
@@ -26,6 +28,7 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
     @Published public var operateExponent: Int
     @Published public var operateExpression: String
     @Published public private(set) var lastResult: MatrixMasterComputationResult?
+    @Published public private(set) var destinationResults: [MatrixMasterDestination: MatrixMasterComputationResult]
     @Published public private(set) var inputValidationMessage: String?
     @Published public private(set) var persistenceMessage: String?
     @Published public private(set) var reuseMessage: String?
@@ -40,6 +43,7 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
     private let libraryStore: any LibraryCatalogStoring
     private let libraryExportURL: URL
     private let fileManager: FileManager
+    private var isSynchronizingLinearMapInputs = false
 
     public init(
         selectedMode: MatrixMasterMathMode = .exact,
@@ -51,9 +55,11 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         basisDraft: BasisDraftInput = BasisDraftInput(),
         secondaryBasisDraft: BasisDraftInput = BasisDraftInput(name: "W"),
         analyzeKind: MatrixAnalyzeKind = .matrixProperties,
+        analyzeMatrixPropertiesSelection: MatrixAnalyzeMatrixPropertiesSelection = .all,
         linearMapDefinitionKind: MatrixLinearMapDefinitionKind = .matrix,
         spacesKind: MatrixSpacesKind = .basisTestExtract,
         spacesPresetKind: MatrixSpacesPresetKind = .none,
+        spacesOutputSelection: MatrixSpacesOutputSelection = .all,
         spacesPolynomialDegree: Int = 2,
         spacesMatrixRowCount: Int = 2,
         spacesMatrixColumnCount: Int = 2,
@@ -78,9 +84,11 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         self.basisDraft = basisDraft
         self.secondaryBasisDraft = secondaryBasisDraft
         self.analyzeKind = analyzeKind
+        self.analyzeMatrixPropertiesSelection = analyzeMatrixPropertiesSelection
         self.linearMapDefinitionKind = linearMapDefinitionKind
         self.spacesKind = spacesKind
         self.spacesPresetKind = spacesPresetKind
+        self.spacesOutputSelection = spacesOutputSelection
         self.spacesPolynomialDegree = max(0, spacesPolynomialDegree)
         self.spacesMatrixRowCount = max(1, spacesMatrixRowCount)
         self.spacesMatrixColumnCount = max(1, spacesMatrixColumnCount)
@@ -96,6 +104,7 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         self.libraryExportURL = libraryExportURL
         self.fileManager = fileManager
         self.libraryMessage = nil
+        self.destinationResults = [:]
         self.libraryVectors = []
         self.libraryHistory = []
     }
@@ -162,16 +171,51 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             return
         }
 
+        if destination == .analyze,
+           analyzeKind == .matrixProperties,
+           !analyzeMatrixPropertiesSelection.hasAnySelection {
+            let message = "Select at least one Analyze output before running."
+            inputValidationMessage = message
+            let validationResult = MatrixMasterComputationResult(
+                answer: "Input validation failed",
+                diagnostics: [message],
+                steps: ["Enable at least one Analyze output and run again."]
+            )
+            destinationResults[destination] = validationResult
+            lastResult = validationResult
+            try? await syncCoordinator.markNeedsAttention()
+            syncState = await syncCoordinator.currentState()
+            return
+        }
+
+        if destination == .spaces,
+           !spacesOutputSelection.hasAnySelection {
+            let message = "Select at least one Spaces output before running."
+            inputValidationMessage = message
+            let validationResult = MatrixMasterComputationResult(
+                answer: "Input validation failed",
+                diagnostics: [message],
+                steps: ["Enable at least one Spaces output and run again."]
+            )
+            destinationResults[destination] = validationResult
+            lastResult = validationResult
+            try? await syncCoordinator.markNeedsAttention()
+            syncState = await syncCoordinator.currentState()
+            return
+        }
+
         do {
             try validateInputs(for: destination)
         } catch {
             let message = validationMessage(for: error)
             inputValidationMessage = message
-            lastResult = MatrixMasterComputationResult(
+            let validationResult = MatrixMasterComputationResult(
                 answer: "Input validation failed",
                 diagnostics: [message],
                 steps: ["Correct the highlighted input and run again."]
             )
+            destinationResults[destination] = validationResult
+            lastResult = validationResult
             try? await syncCoordinator.markNeedsAttention()
             syncState = await syncCoordinator.currentState()
             return
@@ -192,8 +236,10 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             basisVectors: basisVectorsForRequest(destination: destination),
             secondaryBasisVectors: secondaryBasisVectorsForRequest(destination: destination),
             analyzeKind: analyzeKindForRequest(destination: destination),
+            analyzeMatrixPropertiesSelection: analyzeMatrixPropertiesSelectionForRequest(destination: destination),
             spacesKind: spacesKindForRequest(destination: destination),
             spacesPresetKind: spacesPresetKindForRequest(destination: destination),
+            spacesOutputSelection: spacesOutputSelectionForRequest(destination: destination),
             spacesPolynomialDegree: spacesPolynomialDegreeForRequest(destination: destination),
             spacesMatrixRowCount: spacesMatrixRowCountForRequest(destination: destination),
             spacesMatrixColumnCount: spacesMatrixColumnCountForRequest(destination: destination),
@@ -201,15 +247,23 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         )
 
         do {
-            let computedResult: MatrixMasterComputationResult
-            switch selectedMode {
-            case .exact:
-                computedResult = try await exactEngine.compute(request)
-            case .numeric:
-                computedResult = try await numericEngine.compute(request)
-            }
+            let mode = selectedMode
+            let exactEngine = self.exactEngine
+            let numericEngine = self.numericEngine
+            let computedResult = try await Task.detached(priority: .userInitiated) {
+                switch mode {
+                case .exact:
+                    return try await exactEngine.compute(request)
+                case .numeric:
+                    return try await numericEngine.compute(request)
+                }
+            }.value
 
             var enrichedResult = computedResult
+            enrichedResult = enrichResultForPresentation(
+                enrichedResult,
+                destination: destination
+            )
 
             let snapshot = MatrixMasterShellSnapshot(
                 selectedDestination: destination,
@@ -243,16 +297,31 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
                 syncState = .needsAttention
             }
 
+            destinationResults[destination] = enrichedResult
             lastResult = enrichedResult
         } catch {
-            lastResult = MatrixMasterComputationResult(
+            let failureResult = MatrixMasterComputationResult(
                 answer: "Computation failed",
                 diagnostics: [error.localizedDescription],
                 steps: []
             )
+            destinationResults[destination] = failureResult
+            lastResult = failureResult
             try? await syncCoordinator.markNeedsAttention()
             syncState = await syncCoordinator.currentState()
         }
+    }
+
+    public func result(for destination: MatrixMasterDestination) -> MatrixMasterComputationResult? {
+        destinationResults[destination]
+    }
+
+    public func didSelectDestination(_ destination: MatrixMasterDestination) {
+        inputValidationMessage = nil
+        persistenceMessage = nil
+        reuseMessage = nil
+        libraryMessage = nil
+        lastResult = destinationResults[destination]
     }
 
     public func applyReusePayload(_ payload: MatrixMasterReusablePayload, into destination: MatrixMasterDestination) {
@@ -264,6 +333,45 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             vectorDraft = VectorDraftInput(name: vectorPayload.name, entries: vectorPayload.entries)
             reuseMessage = "Prefilled \(destination.title) vector input from \(vectorPayload.source)."
         }
+    }
+
+    public func synchronizeAnalyzeLinearMapFromBasis() {
+        guard analyzeKind == .linearMaps else {
+            return
+        }
+        guard !isSynchronizingLinearMapInputs else {
+            return
+        }
+
+        isSynchronizingLinearMapInputs = true
+        defer { isSynchronizingLinearMapInputs = false }
+
+        let domainDimension = max(1, basisDraft.vectorCount)
+        let codomainDimension = max(1, secondaryBasisDraft.vectorCount)
+
+        synchronizeLinearMapBasis(&basisDraft, squareDimension: domainDimension, namePrefix: "b")
+        synchronizeLinearMapBasis(&secondaryBasisDraft, squareDimension: codomainDimension, namePrefix: "g")
+        resizeMatrix(&matrixDraft, rows: codomainDimension, columns: domainDimension)
+        resizeMatrix(&secondaryMatrixDraft, rows: codomainDimension, columns: domainDimension)
+    }
+
+    public func synchronizeAnalyzeLinearMapFromMatrix() {
+        guard analyzeKind == .linearMaps else {
+            return
+        }
+        guard !isSynchronizingLinearMapInputs else {
+            return
+        }
+
+        isSynchronizingLinearMapInputs = true
+        defer { isSynchronizingLinearMapInputs = false }
+
+        let domainDimension = max(1, matrixDraft.columns)
+        let codomainDimension = max(1, matrixDraft.rows)
+
+        synchronizeLinearMapBasis(&basisDraft, squareDimension: domainDimension, namePrefix: "b")
+        synchronizeLinearMapBasis(&secondaryBasisDraft, squareDimension: codomainDimension, namePrefix: "g")
+        resizeMatrix(&secondaryMatrixDraft, rows: codomainDimension, columns: domainDimension)
     }
 
     public func refreshLibrary() async {
@@ -385,9 +493,9 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         case .none:
             return MatrixSpacesPresetKind.none.title
         case .polynomialSpace:
-            return "P_\(max(0, spacesPolynomialDegree))(F)"
+            return "P\(subscriptNumber(max(0, spacesPolynomialDegree)))(F)"
         case .matrixSpace:
-            return "M_\(max(1, spacesMatrixRowCount))x\(max(1, spacesMatrixColumnCount))(F)"
+            return "M\(subscriptNumber(max(1, spacesMatrixRowCount)))×\(subscriptNumber(max(1, spacesMatrixColumnCount)))(F)"
         }
     }
 
@@ -536,6 +644,15 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         return analyzeKind
     }
 
+    private func analyzeMatrixPropertiesSelectionForRequest(
+        destination: MatrixMasterDestination
+    ) -> MatrixAnalyzeMatrixPropertiesSelection? {
+        guard destination == .analyze, analyzeKind == .matrixProperties else {
+            return nil
+        }
+        return analyzeMatrixPropertiesSelection
+    }
+
     private func spacesKindForRequest(destination: MatrixMasterDestination) -> MatrixSpacesKind? {
         guard destination == .spaces else {
             return nil
@@ -550,6 +667,14 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         }
 
         return spacesPresetKind
+    }
+
+    private func spacesOutputSelectionForRequest(destination: MatrixMasterDestination) -> MatrixSpacesOutputSelection? {
+        guard destination == .spaces else {
+            return nil
+        }
+
+        return spacesOutputSelection
     }
 
     private func spacesPolynomialDegreeForRequest(destination: MatrixMasterDestination) -> Int? {
@@ -738,8 +863,599 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         case 1:
             return "x"
         default:
-            return "x^\(degree)"
+            return "x\(superscriptNumber(degree))"
         }
+    }
+
+    private func superscriptNumber(_ number: Int) -> String {
+        String(String(number).map { Self.superscriptDigitMap[$0] ?? $0 })
+    }
+
+    private func subscriptNumber(_ number: Int) -> String {
+        String(String(number).map { Self.subscriptDigitMap[$0] ?? $0 })
+    }
+
+    private func enrichResultForPresentation(
+        _ result: MatrixMasterComputationResult,
+        destination: MatrixMasterDestination
+    ) -> MatrixMasterComputationResult {
+        var enriched = result
+        var panels = enriched.rowReductionPanels
+
+        if (destination == .solve || destination == .analyze),
+           panels == nil {
+            panels = rowReductionPanels(for: result, destination: destination)
+        }
+        enriched.rowReductionPanels = panels
+
+        if enriched.structuredObjects.isEmpty {
+            enriched.structuredObjects = structuredObjects(
+                from: result,
+                destination: destination,
+                rowReductionPanels: panels
+            )
+        } else {
+            enriched.structuredObjects = deduplicatedStructuredObjects(
+                enriched.structuredObjects,
+                rowReductionPanels: panels
+            )
+        }
+
+        enriched.structuredObjects = Array(enriched.structuredObjects.prefix(6))
+        enriched.answer = compactAnswerText(
+            enriched.answer,
+            destination: destination,
+            rowReductionPanels: panels
+        )
+        enriched.diagnostics = Array(deduplicatedDisplayLines(enriched.diagnostics).prefix(14))
+        enriched.steps = Array(deduplicatedDisplayLines(enriched.steps).prefix(28))
+
+        if destination == .spaces {
+            enriched = applyingSpacesOutputSelection(enriched, selection: spacesOutputSelection)
+        }
+
+        return enriched
+    }
+
+    private func applyingSpacesOutputSelection(
+        _ result: MatrixMasterComputationResult,
+        selection: MatrixSpacesOutputSelection
+    ) -> MatrixMasterComputationResult {
+        var filtered = result
+
+        if !selection.includeConclusion {
+            filtered.answer = "Conclusion hidden by output selection."
+        }
+        if !selection.includeMathObjects {
+            filtered.structuredObjects = []
+            filtered.rowReductionPanels = nil
+        }
+        if !selection.includeDiagnostics {
+            filtered.diagnostics = []
+        }
+        if !selection.includeSteps {
+            filtered.steps = []
+        }
+
+        return filtered
+    }
+
+    private func structuredObjects(
+        from result: MatrixMasterComputationResult,
+        destination: MatrixMasterDestination,
+        rowReductionPanels: MatrixRowReductionPanels?
+    ) -> [MatrixMathObject] {
+        var objects: [MatrixMathObject] = []
+        for payload in result.reusablePayloads {
+            switch payload {
+            case let .matrix(matrixPayload):
+                if destination == .solve,
+                   matrixPayload.source.localizedCaseInsensitiveContains("solve coefficient matrix"),
+                   let augmentedEntries = solveAugmentedEntries() {
+                    objects.append(
+                        .matrix(
+                            MatrixMathMatrixObject(
+                                label: "Solve augmented matrix [A|b]",
+                                entries: augmentedEntries
+                            )
+                        )
+                    )
+                    continue
+                }
+                objects.append(
+                    .matrix(
+                        MatrixMathMatrixObject(
+                            label: matrixPayload.source,
+                            entries: matrixPayload.entries
+                        )
+                    )
+                )
+            case let .vector(vectorPayload):
+                switch (destination, spacesPresetKind) {
+                case (.spaces, .polynomialSpace):
+                    objects.append(
+                        .polynomial(
+                            MatrixMathPolynomialObject(
+                                label: vectorPayload.name.isEmpty ? vectorPayload.source : vectorPayload.name,
+                                coefficients: vectorPayload.entries
+                            )
+                        )
+                    )
+                case (.spaces, .matrixSpace):
+                    if let matrixEntries = matrixEntriesFromVector(
+                        entries: vectorPayload.entries,
+                        rows: max(1, spacesMatrixRowCount),
+                        columns: max(1, spacesMatrixColumnCount)
+                    ) {
+                        objects.append(
+                            .matrix(
+                                MatrixMathMatrixObject(
+                                    label: vectorPayload.name.isEmpty ? vectorPayload.source : vectorPayload.name,
+                                    entries: matrixEntries
+                                )
+                            )
+                        )
+                    } else {
+                        objects.append(
+                            .vector(
+                                MatrixMathVectorObject(
+                                    label: vectorPayload.name.isEmpty ? vectorPayload.source : vectorPayload.name,
+                                    entries: vectorPayload.entries
+                                )
+                            )
+                        )
+                    }
+                default:
+                    objects.append(
+                        .vector(
+                            MatrixMathVectorObject(
+                                label: vectorPayload.name.isEmpty ? vectorPayload.source : vectorPayload.name,
+                                entries: vectorPayload.entries
+                            )
+                        )
+                    )
+                }
+            }
+        }
+
+        if objects.isEmpty {
+            objects = fallbackStructuredObjects(for: destination)
+        }
+
+        return deduplicatedStructuredObjects(objects, rowReductionPanels: rowReductionPanels)
+    }
+
+    private func compactAnswerText(
+        _ answer: String,
+        destination: MatrixMasterDestination,
+        rowReductionPanels: MatrixRowReductionPanels?
+    ) -> String {
+        let segments = answer
+            .replacingOccurrences(of: "\n", with: " | ")
+            .split(separator: "|", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !segments.isEmpty else {
+            return answer
+        }
+
+        var compact: [String] = []
+        for segment in segments {
+            let lower = segment.lowercased()
+
+            if segment.contains("[[") && segment.contains("]]") {
+                if let stripped = strippingInlineMatrixLiteral(from: segment),
+                   !stripped.isEmpty,
+                   !compact.contains(where: { $0.caseInsensitiveCompare(stripped) == .orderedSame }) {
+                    compact.append(stripped)
+                }
+                continue
+            }
+            if let rowReductionPanels,
+               (lower.contains("rref") || lower.contains("ref")),
+               matrixLiteralEntries(in: segment) == rowReductionPanels.rrefEntries
+                || matrixLiteralEntries(in: segment) == rowReductionPanels.refEntries {
+                continue
+            }
+            if destination == .analyze && lower.contains("inverse(a) = [[") {
+                continue
+            }
+            if destination == .analyze && lower.contains("inverse(a): available") {
+                compact.append("A^-1")
+                continue
+            }
+            if compact.contains(where: { $0.caseInsensitiveCompare(segment) == .orderedSame }) {
+                continue
+            }
+            compact.append(segment)
+        }
+
+        if compact.isEmpty {
+            if destination == .operate {
+                return "Result shown below."
+            }
+            return segments.joined(separator: " | ")
+        }
+
+        return compact.joined(separator: " | ")
+    }
+
+    private func strippingInlineMatrixLiteral(from segment: String) -> String? {
+        guard let start = segment.range(of: "[["),
+              let end = segment.range(of: "]]", options: .backwards),
+              start.lowerBound < end.upperBound else {
+            return nil
+        }
+
+        let prefixRaw = segment[..<start.lowerBound]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let prefixLower = prefixRaw.lowercased()
+        if prefixLower.contains("inverse(a)") || prefixLower.contains("a^-1") {
+            return "A^-1"
+        }
+
+        let prefix = prefixRaw
+        let suffix = segment[end.upperBound...]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var combined = [String]()
+        if !prefix.isEmpty {
+            combined.append(String(prefix))
+        }
+        if !suffix.isEmpty {
+            combined.append(String(suffix))
+        }
+
+        var output = combined.joined(separator: " ")
+        while let last = output.last, last == "=" || last == ":" || last == "-" {
+            output.removeLast()
+            output = output.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return output.isEmpty ? "Result shown below." : output
+    }
+
+    private func deduplicatedDisplayLines(_ lines: [String]) -> [String] {
+        var output: [String] = []
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                continue
+            }
+
+            if trimmed.contains("[[") && trimmed.contains("]]") {
+                continue
+            }
+
+            if output.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
+                continue
+            }
+            output.append(trimmed)
+        }
+        return output
+    }
+
+    private func deduplicatedStructuredObjects(
+        _ objects: [MatrixMathObject],
+        rowReductionPanels: MatrixRowReductionPanels?
+    ) -> [MatrixMathObject] {
+        var deduplicated: [MatrixMathObject] = []
+        var signatures: Set<String> = []
+
+        for object in objects {
+            if shouldHideObjectAsRowPanelDuplicate(object, rowReductionPanels: rowReductionPanels) {
+                continue
+            }
+
+            let signature = objectSignature(object)
+            if signatures.insert(signature).inserted {
+                deduplicated.append(object)
+            }
+        }
+
+        return deduplicated
+    }
+
+    private func shouldHideObjectAsRowPanelDuplicate(
+        _ object: MatrixMathObject,
+        rowReductionPanels: MatrixRowReductionPanels?
+    ) -> Bool {
+        guard let rowReductionPanels else {
+            return false
+        }
+        guard case let .matrix(matrixObject) = object else {
+            return false
+        }
+
+        return matrixObject.entries == rowReductionPanels.refEntries
+            || matrixObject.entries == rowReductionPanels.rrefEntries
+    }
+
+    private func objectSignature(_ object: MatrixMathObject) -> String {
+        switch object {
+        case let .matrix(matrixObject):
+            return "matrix::\(matrixEntriesSignature(matrixObject.entries))"
+        case let .vector(vectorObject):
+            return "vector::\(vectorObject.entries.joined(separator: "|"))"
+        case let .polynomial(polynomialObject):
+            return "polynomial::\(polynomialObject.variableSymbol)::\(polynomialObject.coefficients.joined(separator: "|"))"
+        }
+    }
+
+    private func matrixEntriesSignature(_ entries: [[String]]) -> String {
+        entries
+            .map { row in row.joined(separator: ",") }
+            .joined(separator: ";")
+    }
+
+    private func matrixLiteralEntries(in text: String) -> [[String]]? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.contains("[["),
+              trimmed.contains("]]") else {
+            return nil
+        }
+
+        guard let start = trimmed.range(of: "[["),
+              let end = trimmed.range(of: "]]", options: .backwards),
+              start.lowerBound < end.upperBound else {
+            return nil
+        }
+
+        let literal = String(trimmed[start.lowerBound..<end.upperBound])
+        var working = literal
+        working.removeFirst(2)
+        working.removeLast(2)
+
+        let rows = working.components(separatedBy: "], [")
+        let parsed = rows.map { row in
+            row
+                .replacingOccurrences(of: "[", with: "")
+                .replacingOccurrences(of: "]", with: "")
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        }
+
+        guard let firstCount = parsed.first?.count,
+              firstCount > 0,
+              parsed.allSatisfy({ $0.count == firstCount }) else {
+            return nil
+        }
+
+        return parsed
+    }
+
+    private func fallbackStructuredObjects(for destination: MatrixMasterDestination) -> [MatrixMathObject] {
+        switch destination {
+        case .solve:
+            if let entries = solveAugmentedEntries() {
+                return [
+                    .matrix(
+                        MatrixMathMatrixObject(
+                            label: "Solve augmented matrix [A|b]",
+                            entries: entries
+                        )
+                    )
+                ]
+            }
+            return []
+        case .operate, .analyze:
+            return [
+                .matrix(
+                    MatrixMathMatrixObject(
+                        label: "Input matrix",
+                        entries: matrixDraft.entries
+                    )
+                )
+            ]
+        case .spaces:
+            return spacesFallbackStructuredObjects()
+        case .library:
+            return [
+                .vector(
+                    MatrixMathVectorObject(
+                        label: vectorDraft.name.isEmpty ? "Draft vector" : vectorDraft.name,
+                        entries: vectorDraft.entries
+                    )
+                )
+            ]
+        }
+    }
+
+    private func spacesFallbackStructuredObjects() -> [MatrixMathObject] {
+        switch spacesPresetKind {
+        case .none:
+            return basisDraft.vectors.prefix(3).map { vector in
+                .vector(
+                    MatrixMathVectorObject(
+                        label: vector.name.isEmpty ? "Space vector" : vector.name,
+                        entries: vector.entries
+                    )
+                )
+            }
+        case .polynomialSpace:
+            return basisDraft.vectors.prefix(3).map { vector in
+                .polynomial(
+                    MatrixMathPolynomialObject(
+                        label: vector.name.isEmpty ? "Polynomial" : vector.name,
+                        coefficients: vector.entries
+                    )
+                )
+            }
+        case .matrixSpace:
+            return basisDraft.vectors.prefix(3).map { vector in
+                if let entries = matrixEntriesFromVector(
+                    entries: vector.entries,
+                    rows: max(1, spacesMatrixRowCount),
+                    columns: max(1, spacesMatrixColumnCount)
+                ) {
+                    return .matrix(
+                        MatrixMathMatrixObject(
+                            label: vector.name.isEmpty ? "Matrix element" : vector.name,
+                            entries: entries
+                        )
+                    )
+                }
+                return .vector(
+                    MatrixMathVectorObject(
+                        label: vector.name.isEmpty ? "Space vector" : vector.name,
+                        entries: vector.entries
+                    )
+                )
+            }
+        }
+    }
+
+    private func rowReductionPanels(
+        for result: MatrixMasterComputationResult,
+        destination: MatrixMasterDestination
+    ) -> MatrixRowReductionPanels? {
+        if destination == .analyze,
+           analyzeKind == .matrixProperties,
+           !analyzeMatrixPropertiesSelection.includeRowReductionPanels {
+            return nil
+        }
+
+        guard let eliminationSource = eliminationSourceEntries(for: destination) else {
+            return nil
+        }
+
+        if let rrefPayload = rrefEntries(in: result) {
+            if var computed = MatrixRowReductionPreviewBuilder.build(
+                sourceEntries: eliminationSource.entries,
+                mode: selectedMode,
+                sourceLabel: eliminationSource.label,
+                separatorAfterColumn: eliminationSource.separatorAfterColumn
+            ) {
+                computed.rrefEntries = rrefPayload.entries
+                return computed
+            }
+
+            return MatrixRowReductionPanels(
+                sourceLabel: rrefPayload.label,
+                refEntries: rrefPayload.entries,
+                rrefEntries: rrefPayload.entries,
+                separatorAfterColumn: eliminationSource.separatorAfterColumn
+            )
+        }
+
+        return MatrixRowReductionPreviewBuilder.build(
+            sourceEntries: eliminationSource.entries,
+            mode: selectedMode,
+            sourceLabel: eliminationSource.label,
+            separatorAfterColumn: eliminationSource.separatorAfterColumn
+        )
+    }
+
+    private func eliminationSourceEntries(
+        for destination: MatrixMasterDestination
+    ) -> (label: String, entries: [[String]], separatorAfterColumn: Int?)? {
+        switch destination {
+        case .solve:
+            guard let entries = solveAugmentedEntries() else {
+                return nil
+            }
+            return ("Solve augmented matrix [A|b]", entries, max(1, matrixDraft.columns - 1))
+        case .analyze:
+            switch analyzeKind {
+            case .matrixProperties:
+                return ("Analyze matrix", matrixDraft.entries, nil)
+            case .spanMembership, .coordinates, .independence:
+                guard let basisMatrix = basisAsMatrixEntries(basisDraft) else {
+                    return nil
+                }
+                return ("Analyze basis matrix", basisMatrix, nil)
+            case .linearMaps:
+                switch linearMapDefinitionKind {
+                case .matrix:
+                    return ("Linear maps matrix A", matrixDraft.entries, nil)
+                case .basisImages:
+                    return ("Linear maps image matrix Y", secondaryMatrixDraft.entries, nil)
+                }
+            }
+        case .operate, .spaces, .library:
+            return nil
+        }
+    }
+
+    private func solveAugmentedEntries() -> [[String]]? {
+        guard matrixDraft.columns >= 2 else {
+            return nil
+        }
+        return matrixDraft.entries
+    }
+
+    private func solveCoefficientEntries() -> [[String]]? {
+        guard matrixDraft.columns >= 2 else {
+            return nil
+        }
+        return matrixDraft.entries.map { row in
+            Array(row.dropLast())
+        }
+    }
+
+    private func basisAsMatrixEntries(_ basis: BasisDraftInput) -> [[String]]? {
+        guard let firstVector = basis.vectors.first else {
+            return nil
+        }
+        let rowCount = firstVector.entries.count
+        let columnCount = basis.vectors.count
+        guard rowCount > 0, columnCount > 0 else {
+            return nil
+        }
+
+        var matrix = Array(
+            repeating: Array(repeating: "0", count: columnCount),
+            count: rowCount
+        )
+
+        for column in 0..<columnCount {
+            let vector = basis.vectors[column]
+            guard vector.entries.count == rowCount else {
+                return nil
+            }
+            for row in 0..<rowCount {
+                matrix[row][column] = vector.entries[row]
+            }
+        }
+
+        return matrix
+    }
+
+    private func matrixEntriesFromVector(
+        entries: [String],
+        rows: Int,
+        columns: Int
+    ) -> [[String]]? {
+        let safeRows = max(1, rows)
+        let safeColumns = max(1, columns)
+        guard entries.count == safeRows * safeColumns else {
+            return nil
+        }
+
+        var matrix: [[String]] = []
+        matrix.reserveCapacity(safeRows)
+        for row in 0..<safeRows {
+            let start = row * safeColumns
+            let end = start + safeColumns
+            matrix.append(Array(entries[start..<end]))
+        }
+        return matrix
+    }
+
+    private func rrefEntries(
+        in result: MatrixMasterComputationResult
+    ) -> (label: String, entries: [[String]])? {
+        for payload in result.reusablePayloads {
+            guard case let .matrix(matrixPayload) = payload else {
+                continue
+            }
+
+            if matrixPayload.source.localizedCaseInsensitiveContains("rref") {
+                return (matrixPayload.source, matrixPayload.entries)
+            }
+        }
+        return nil
     }
 
     private func runLibrarySummary() async {
@@ -761,11 +1477,13 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
             "Use Export to write the Library snapshot as JSON."
         ]
 
-        lastResult = MatrixMasterComputationResult(
+        let libraryResult = MatrixMasterComputationResult(
             answer: answer,
             diagnostics: diagnostics,
             steps: steps
         )
+        destinationResults[.library] = libraryResult
+        lastResult = libraryResult
     }
 
     private func recordSyncWriteForLibrary() async {
@@ -791,5 +1509,300 @@ public final class MatrixMasterFeatureCoordinator: ObservableObject {
         }
 
         return error.localizedDescription
+    }
+
+    private func synchronizeLinearMapBasis(
+        _ basis: inout BasisDraftInput,
+        squareDimension: Int,
+        namePrefix: String
+    ) {
+        let safeDimension = max(1, squareDimension)
+
+        while basis.vectorCount < safeDimension {
+            basis.addVector(named: "\(namePrefix)\(basis.vectorCount + 1)")
+        }
+        while basis.vectorCount > safeDimension {
+            basis.removeLastVector()
+        }
+
+        basis.alignVectors(to: safeDimension)
+    }
+
+    private func resizeMatrix(_ matrix: inout MatrixDraftInput, rows: Int, columns: Int) {
+        let safeRows = max(1, rows)
+        let safeColumns = max(1, columns)
+
+        while matrix.rows < safeRows {
+            matrix.addRow()
+        }
+        while matrix.rows > safeRows {
+            matrix.removeLastRow()
+        }
+        while matrix.columns < safeColumns {
+            matrix.addColumn()
+        }
+        while matrix.columns > safeColumns {
+            matrix.removeLastColumn()
+        }
+    }
+
+    private static let superscriptDigitMap: [Character: Character] = [
+        "-": "⁻",
+        "0": "⁰",
+        "1": "¹",
+        "2": "²",
+        "3": "³",
+        "4": "⁴",
+        "5": "⁵",
+        "6": "⁶",
+        "7": "⁷",
+        "8": "⁸",
+        "9": "⁹"
+    ]
+
+    private static let subscriptDigitMap: [Character: Character] = [
+        "0": "₀",
+        "1": "₁",
+        "2": "₂",
+        "3": "₃",
+        "4": "₄",
+        "5": "₅",
+        "6": "₆",
+        "7": "₇",
+        "8": "₈",
+        "9": "₉"
+    ]
+}
+
+private enum MatrixRowReductionPreviewBuilder {
+    private static let tolerance: Double = 1.0e-9
+
+    static func build(
+        sourceEntries: [[String]],
+        mode: MatrixMasterMathMode,
+        sourceLabel: String,
+        separatorAfterColumn: Int? = nil
+    ) -> MatrixRowReductionPanels? {
+        guard let parsed = parse(sourceEntries: sourceEntries) else {
+            return nil
+        }
+
+        var ref = parsed
+        let pivotColumns = forwardElimination(matrix: &ref)
+        var rref = ref
+        backwardElimination(matrix: &rref, pivotColumns: pivotColumns)
+
+        return MatrixRowReductionPanels(
+            sourceLabel: sourceLabel,
+            refEntries: stringify(ref, mode: mode),
+            rrefEntries: stringify(rref, mode: mode),
+            separatorAfterColumn: separatorAfterColumn
+        )
+    }
+
+    private static func parse(sourceEntries: [[String]]) -> [[Double]]? {
+        guard let first = sourceEntries.first, !first.isEmpty else {
+            return nil
+        }
+
+        guard sourceEntries.allSatisfy({ $0.count == first.count }) else {
+            return nil
+        }
+
+        var matrix: [[Double]] = []
+        matrix.reserveCapacity(sourceEntries.count)
+        for row in sourceEntries {
+            var parsedRow: [Double] = []
+            parsedRow.reserveCapacity(row.count)
+            for token in row {
+                guard let value = parseToken(token) else {
+                    return nil
+                }
+                parsedRow.append(value)
+            }
+            matrix.append(parsedRow)
+        }
+        return matrix
+    }
+
+    private static func parseToken(_ token: String) -> Double? {
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+
+        if trimmed.contains("/") {
+            let parts = trimmed.split(separator: "/", omittingEmptySubsequences: false)
+            guard parts.count == 2,
+                  let numerator = Double(parts[0]),
+                  let denominator = Double(parts[1]),
+                  abs(denominator) > tolerance else {
+                return nil
+            }
+            return numerator / denominator
+        }
+
+        return Double(trimmed)
+    }
+
+    private static func forwardElimination(matrix: inout [[Double]]) -> [Int] {
+        guard let columnCount = matrix.first?.count else {
+            return []
+        }
+
+        var pivotColumns: [Int] = []
+        var pivotRow = 0
+
+        for column in 0..<columnCount where pivotRow < matrix.count {
+            guard let pivotIndex = bestPivotRow(
+                in: matrix,
+                column: column,
+                fromRow: pivotRow
+            ),
+            abs(matrix[pivotIndex][column]) > tolerance else {
+                continue
+            }
+
+            if pivotIndex != pivotRow {
+                matrix.swapAt(pivotIndex, pivotRow)
+            }
+
+            let pivot = matrix[pivotRow][column]
+            for inner in column..<columnCount {
+                matrix[pivotRow][inner] /= pivot
+                if abs(matrix[pivotRow][inner]) < tolerance {
+                    matrix[pivotRow][inner] = 0
+                }
+            }
+
+            for row in (pivotRow + 1)..<matrix.count {
+                let factor = matrix[row][column]
+                if abs(factor) <= tolerance {
+                    continue
+                }
+                for inner in column..<columnCount {
+                    matrix[row][inner] -= factor * matrix[pivotRow][inner]
+                    if abs(matrix[row][inner]) < tolerance {
+                        matrix[row][inner] = 0
+                    }
+                }
+            }
+
+            pivotColumns.append(column)
+            pivotRow += 1
+        }
+
+        return pivotColumns
+    }
+
+    private static func backwardElimination(matrix: inout [[Double]], pivotColumns: [Int]) {
+        guard !pivotColumns.isEmpty else {
+            return
+        }
+
+        for pivotRow in stride(from: pivotColumns.count - 1, through: 0, by: -1) {
+            let pivotColumn = pivotColumns[pivotRow]
+            guard pivotRow < matrix.count else {
+                continue
+            }
+
+            for row in 0..<pivotRow {
+                let factor = matrix[row][pivotColumn]
+                if abs(factor) <= tolerance {
+                    continue
+                }
+
+                for inner in pivotColumn..<matrix[row].count {
+                    matrix[row][inner] -= factor * matrix[pivotRow][inner]
+                    if abs(matrix[row][inner]) < tolerance {
+                        matrix[row][inner] = 0
+                    }
+                }
+            }
+        }
+    }
+
+    private static func bestPivotRow(
+        in matrix: [[Double]],
+        column: Int,
+        fromRow startRow: Int
+    ) -> Int? {
+        guard startRow < matrix.count else {
+            return nil
+        }
+
+        var bestIndex: Int?
+        var bestMagnitude: Double = 0
+
+        for row in startRow..<matrix.count {
+            let magnitude = abs(matrix[row][column])
+            if magnitude > bestMagnitude {
+                bestMagnitude = magnitude
+                bestIndex = row
+            }
+        }
+
+        return bestIndex
+    }
+
+    private static func stringify(_ matrix: [[Double]], mode: MatrixMasterMathMode) -> [[String]] {
+        matrix.map { row in
+            row.map { value in
+                format(value: value, mode: mode)
+            }
+        }
+    }
+
+    private static func format(value: Double, mode: MatrixMasterMathMode) -> String {
+        if abs(value) < tolerance {
+            return "0"
+        }
+
+        let rounded = round(value)
+        if abs(value - rounded) < tolerance {
+            return String(Int(rounded))
+        }
+
+        if mode == .exact, let fraction = bestFractionApproximation(for: value, maxDenominator: 1024) {
+            return fraction
+        }
+
+        return String(format: "%.6g", value)
+    }
+
+    private static func bestFractionApproximation(for value: Double, maxDenominator: Int) -> String? {
+        var bestNumerator = 0
+        var bestDenominator = 1
+        var bestError = Double.greatestFiniteMagnitude
+
+        for denominator in 1...max(1, maxDenominator) {
+            let numerator = Int((value * Double(denominator)).rounded())
+            let candidate = Double(numerator) / Double(denominator)
+            let error = abs(value - candidate)
+            if error < bestError {
+                bestError = error
+                bestNumerator = numerator
+                bestDenominator = denominator
+            }
+        }
+
+        let divisor = gcd(abs(bestNumerator), bestDenominator)
+        let normalizedNumerator = bestNumerator / divisor
+        let normalizedDenominator = bestDenominator / divisor
+        if normalizedDenominator == 1 {
+            return String(normalizedNumerator)
+        }
+        return "\(normalizedNumerator)/\(normalizedDenominator)"
+    }
+
+    private static func gcd(_ a: Int, _ b: Int) -> Int {
+        var x = a
+        var y = b
+        while y != 0 {
+            let remainder = x % y
+            x = y
+            y = remainder
+        }
+        return max(1, x)
     }
 }

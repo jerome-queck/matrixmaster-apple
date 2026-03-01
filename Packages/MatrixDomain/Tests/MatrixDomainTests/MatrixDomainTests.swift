@@ -216,4 +216,58 @@ final class MatrixDomainTests: XCTestCase {
         let decoded = try JSONDecoder().decode(MatrixLibrarySnapshot.self, from: encoded)
         XCTAssertEqual(decoded, snapshot)
     }
+
+    func testMathExportFormatterProducesExpectedFormats() {
+        let matrixObject = MatrixMathObject.matrix(
+            MatrixMathMatrixObject(
+                label: "A",
+                entries: [["1/2", "-3"], ["0", "4"]]
+            )
+        )
+        let polynomialObject = MatrixMathObject.polynomial(
+            MatrixMathPolynomialObject(
+                label: "p",
+                coefficients: ["1", "-2", "3"]
+            )
+        )
+
+        let matrixLatex = MatrixMathExportFormatter.format(matrixObject, as: .latex)
+        XCTAssertTrue(matrixLatex.contains(#"\begin{bmatrix}"#))
+        XCTAssertTrue(matrixLatex.contains(#"\frac{1}{2}"#))
+
+        let polynomialPlain = MatrixMathExportFormatter.format(polynomialObject, as: .plain)
+        XCTAssertTrue(polynomialPlain.contains("3x^2"))
+        XCTAssertTrue(polynomialPlain.contains("- 2x"))
+
+        let polynomialMarkdown = MatrixMathExportFormatter.format(polynomialObject, as: .markdown)
+        XCTAssertTrue(polynomialMarkdown.contains("**p**"))
+    }
+
+    func testComputationResultCodableRoundTripWithStructuredObjectsAndRowPanels() throws {
+        let result = MatrixMasterComputationResult(
+            answer: "Unique solution",
+            diagnostics: ["Classification: unique solution."],
+            steps: ["Sample step."],
+            reusablePayloads: [
+                .matrix(MatrixReusablePayload(entries: [["1", "0"]], source: "Solve coefficient matrix")),
+                .vector(VectorReusablePayload(name: "Solve solution", entries: ["1"], source: "Solve unique solution"))
+            ],
+            structuredObjects: [
+                .matrix(MatrixMathMatrixObject(label: "REF", entries: [["1", "0"], ["0", "1"]])),
+                .polynomial(MatrixMathPolynomialObject(label: "p", coefficients: ["1", "2", "0"]))
+            ],
+            rowReductionPanels: MatrixRowReductionPanels(
+                sourceLabel: "Solve coefficient matrix",
+                refEntries: [["1", "0"], ["0", "1"]],
+                rrefEntries: [["1", "0"], ["0", "1"]]
+            )
+        )
+
+        let encoded = try JSONEncoder().encode(result)
+        let decoded = try JSONDecoder().decode(MatrixMasterComputationResult.self, from: encoded)
+
+        XCTAssertEqual(decoded, result)
+        XCTAssertEqual(decoded.structuredObjects.count, 2)
+        XCTAssertEqual(decoded.rowReductionPanels?.sourceLabel, "Solve coefficient matrix")
+    }
 }

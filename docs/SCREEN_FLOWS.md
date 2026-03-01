@@ -17,15 +17,17 @@ Show:
 
 ### After solve
 Show:
-1. solution summary
-2. consistency and solution-count classification
-3. pivot/free variable summary
-4. reuse actions:
+1. primary answer summary card
+2. structured math object cards (matrix/vector/polynomial views where applicable)
+3. explicit REF/RREF matrix panels
+4. consistency and solution-count classification diagnostics
+5. reuse actions:
    - save result
    - send coefficient matrix to Analyze
    - send solution vector to Operate
-5. step trace
-6. explanation card
+6. step trace
+7. explanation card
+8. save/reuse actions (result-object copy/export remains follow-up)
 
 ### Branch flows
 - inverse via row reduction from solve result
@@ -125,12 +127,12 @@ Tools:
 - least squares
 
 ### Result presentation and formatting subflow
-Tools:
+Current baseline:
 - matrix-looking result rendering (grid/bracket object view)
 - vector/polynomial object rendering
 - explicit REF/RREF matrix panels for elimination workflows
-- copy/export actions with plain/markdown/LaTeX-ready modes
 - structured answer/diagnostics/steps cards with reusable payload actions
+- destination-scoped result visibility (results shown only in the tab where they were computed)
 
 ### Applied/later extras subflow
 Tools:

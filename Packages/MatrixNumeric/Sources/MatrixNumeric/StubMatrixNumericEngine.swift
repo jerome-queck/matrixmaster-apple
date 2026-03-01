@@ -251,238 +251,169 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
         let rowCount = matrix.count
         let columnCount = matrix[0].count
         let tolerance = 1.0e-9
+        let selection = request.analyzeMatrixPropertiesSelection ?? .all
 
-        let rankSummary = rank(of: matrix, tolerance: tolerance)
-        let nullity = max(0, columnCount - rankSummary.rank)
-        let columnBasisVectors = columnSpaceBasis(from: matrix, pivotColumns: rankSummary.pivotColumns)
-        let rowBasisVectors = rowSpaceBasis(from: rankSummary.reduced, tolerance: tolerance)
-        let nullBasisVectors = nullSpaceBasis(
-            from: rankSummary.reduced,
-            pivotColumns: rankSummary.pivotColumns,
-            columnCount: columnCount,
-            tolerance: tolerance
-        )
-        let qrSummary = qrDecomposition(of: matrix, tolerance: tolerance)
-        let sigmaSummary = singularValueSummary(of: matrix, tolerance: tolerance)
+        if !selection.hasAnySelection {
+            return MatrixMasterComputationResult(
+                answer: "No Analyze outputs selected.",
+                diagnostics: [
+                    "Mode: Numeric (Double).",
+                    "Enable at least one matrix-properties output and run again."
+                ],
+                steps: []
+            )
+        }
 
-        var answerParts = [
-            "Numeric rank(A) = \(rankSummary.rank)",
-            "nullity(A) = \(nullity)",
-            "dim Col(A) = \(columnBasisVectors.count)",
-            "dim Row(A) = \(rowBasisVectors.count)",
-            "dim Null(A) = \(nullBasisVectors.count)"
-        ]
+        var answerParts: [String] = []
         var diagnostics = [
             "Mode: Numeric (Double).",
             "Dimensions: \(rowCount)x\(columnCount).",
-            "Tolerance: \(formattedScientific(tolerance)).",
-            "Pivot columns: \(pivotDescription(rankSummary.pivotColumns)).",
-            "Nullity(A): \(nullity).",
-            "Rank-nullity check: \(rankSummary.rank) + \(nullity) = \(columnCount).",
-            "Col(A) basis: \(inlineBasis(columnBasisVectors)).",
-            "Row(A) basis: \(inlineBasis(rowBasisVectors)).",
-            "Null(A) basis: \(inlineBasis(nullBasisVectors))."
+            "Tolerance: \(formattedScientific(tolerance))."
         ]
-        var steps = [
-            "Computed rank with Gaussian elimination at tolerance \(formattedScientific(tolerance)).",
-            "Used pivot columns from the original matrix to witness a column-space basis.",
-            "Used nonzero rows of RREF to witness a row-space basis."
-        ]
-        var payloads: [MatrixMasterReusablePayload] = [
-            .matrix(
-                MatrixReusablePayload(
-                    entries: stringify(rankSummary.reduced),
-                    source: "Analyze numeric RREF matrix"
-                )
-            )
-        ]
+        var steps: [String] = []
+        var payloads: [MatrixMasterReusablePayload] = []
 
-        if !columnBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(columnBasisVectors, rowCount: rowCount)),
-                        source: "Analyze numeric column space basis (vectors as columns)"
-                    )
-                )
-            )
+        var rankSummary: NumericRankSummary?
+        if selection.needsRREFComputation {
+            rankSummary = rank(of: matrix, tolerance: tolerance)
         }
 
-        if !rowBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(rowBasisVectors, rowCount: columnCount)),
-                        source: "Analyze numeric row space basis (vectors as columns)"
-                    )
-                )
-            )
-        }
+        if let rankSummary {
+            let nullity = max(0, columnCount - rankSummary.rank)
 
-        if !nullBasisVectors.isEmpty {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(matrixFromColumnVectors(nullBasisVectors, rowCount: columnCount)),
-                        source: "Analyze numeric null space basis (vectors as columns)"
-                    )
-                )
-            )
-            steps.append("Set each free variable to 1 (others 0) to construct a numeric null-space basis.")
-        } else {
-            steps.append("No free variables remain at tolerance, so Null(A) is treated as the trivial subspace {0}.")
-        }
+            if selection.includeRankNullity {
+                answerParts.append("Numeric rank(A) = \(rankSummary.rank)")
+                answerParts.append("nullity(A) = \(nullity)")
+                diagnostics.append("Pivot columns: \(pivotDescription(rankSummary.pivotColumns)).")
+                diagnostics.append("Nullity(A): \(nullity).")
+                diagnostics.append("Rank-nullity check: \(rankSummary.rank) + \(nullity) = \(columnCount).")
+                steps.append("Computed rank with Gaussian elimination at tolerance \(formattedScientific(tolerance)).")
+            }
 
-        answerParts.append(qrSummary.success ? "QR: available" : "QR: unstable at tolerance")
-        diagnostics.append(
-            qrSummary.success
-            ? "QR decomposition succeeded via modified Gram-Schmidt."
-            : "QR decomposition failed due to near-dependent columns."
-        )
-        steps.append(
-            qrSummary.success
-            ? "Computed QR factors using modified Gram-Schmidt."
-            : "QR decomposition encountered a near-zero column norm."
-        )
-
-        if qrSummary.success {
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(qrSummary.q),
-                        source: "Analyze numeric Q factor"
+            if selection.includeColumnSpaceBasis {
+                let columnBasisVectors = columnSpaceBasis(from: matrix, pivotColumns: rankSummary.pivotColumns)
+                answerParts.append("dim Col(A) = \(columnBasisVectors.count)")
+                diagnostics.append("Col(A) basis: \(inlineBasis(columnBasisVectors)).")
+                steps.append("Used pivot columns from the original matrix to witness a column-space basis.")
+                if !columnBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(columnBasisVectors, rowCount: rowCount)),
+                                source: "Analyze numeric column space basis (vectors as columns)"
+                            )
+                        )
                     )
-                )
-            )
-            payloads.append(
-                .matrix(
-                    MatrixReusablePayload(
-                        entries: stringify(qrSummary.r),
-                        source: "Analyze numeric R factor"
-                    )
-                )
-            )
-        }
+                }
+            }
 
-        if let sigmaMax = sigmaSummary.sigmaMax {
-            answerParts.append("sigma_max(A) ~= \(formatted(sigmaMax))")
-            diagnostics.append("Largest singular value estimate: \(formatted(sigmaMax)).")
-            if !sigmaSummary.singularValues.isEmpty {
-                answerParts.append(
-                    "SVD singular values ~= [\(sigmaSummary.singularValues.map(formatted).joined(separator: ", "))]"
+            if selection.includeRowSpaceBasis {
+                let rowBasisVectors = rowSpaceBasis(from: rankSummary.reduced, tolerance: tolerance)
+                answerParts.append("dim Row(A) = \(rowBasisVectors.count)")
+                diagnostics.append("Row(A) basis: \(inlineBasis(rowBasisVectors)).")
+                steps.append("Used nonzero rows of RREF to witness a row-space basis.")
+                if !rowBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(rowBasisVectors, rowCount: columnCount)),
+                                source: "Analyze numeric row space basis (vectors as columns)"
+                            )
+                        )
+                    )
+                }
+            }
+
+            if selection.includeNullSpaceBasis {
+                let nullBasisVectors = nullSpaceBasis(
+                    from: rankSummary.reduced,
+                    pivotColumns: rankSummary.pivotColumns,
+                    columnCount: columnCount,
+                    tolerance: tolerance
                 )
-                diagnostics.append("SVD baseline singular values computed from AᵀA eigenvalue deflation.")
+                answerParts.append("dim Null(A) = \(nullBasisVectors.count)")
+                diagnostics.append("Null(A) basis: \(inlineBasis(nullBasisVectors)).")
+                if !nullBasisVectors.isEmpty {
+                    payloads.append(
+                        .matrix(
+                            MatrixReusablePayload(
+                                entries: stringify(matrixFromColumnVectors(nullBasisVectors, rowCount: columnCount)),
+                                source: "Analyze numeric null space basis (vectors as columns)"
+                            )
+                        )
+                    )
+                    steps.append("Set each free variable to 1 (others 0) to construct a numeric null-space basis.")
+                } else {
+                    steps.append("No free variables remain at tolerance, so Null(A) is treated as the trivial subspace {0}.")
+                }
+            }
+
+            if selection.includeRowReductionPanels {
                 payloads.append(
-                    .vector(
-                        VectorReusablePayload(
-                            name: "Analyze singular values",
-                            entries: sigmaSummary.singularValues.map(formatted),
-                            source: "Analyze SVD singular values"
+                    .matrix(
+                        MatrixReusablePayload(
+                            entries: stringify(rankSummary.reduced),
+                            source: "Analyze numeric RREF matrix"
                         )
                     )
                 )
             }
-            steps.append("Estimated singular spectrum from repeated dominant-eigen extraction on AᵀA.")
-        } else {
-            answerParts.append("sigma_max(A): unavailable")
-            diagnostics.append("Largest singular value and SVD baseline could not converge.")
         }
 
-        if rowCount == columnCount {
-            let traceValue = trace(of: matrix)
-            let determinantValue = determinant(of: matrix, tolerance: tolerance)
-            let luSummary = luDecomposition(of: matrix, tolerance: tolerance)
-            let inverseSummary = inverse(of: matrix, tolerance: tolerance)
-            let eigenSummary = dominantEigenpair(of: matrix, tolerance: tolerance)
+        if selection.needsSquareMetrics {
+            if rowCount == columnCount {
+                if selection.includeDeterminant {
+                    let determinantValue = determinant(of: matrix, tolerance: tolerance)
+                    answerParts.insert("det(A) ~= \(formatted(determinantValue))", at: 0)
+                    diagnostics.append("Determinant: \(formatted(determinantValue)).")
+                    steps.append("Computed determinant from elimination pivots.")
+                }
 
-            answerParts.insert("det(A) ~= \(formatted(determinantValue))", at: 0)
-            answerParts.append("trace(A) ~= \(formatted(traceValue))")
-            answerParts.append(
-                luSummary.success
-                ? "LU: available"
-                : "LU: singular/unstable at tolerance"
-            )
-            if let eigenvalue = eigenSummary.eigenvalue {
-                answerParts.append("lambda_max(A) ~= \(formatted(eigenvalue))")
+                if selection.includeTrace {
+                    let traceValue = trace(of: matrix)
+                    answerParts.append("trace(A) ~= \(formatted(traceValue))")
+                    diagnostics.append("Trace(A): \(formatted(traceValue)).")
+                }
+
+                if selection.includeInverse {
+                    let inverseSummary = inverse(of: matrix, tolerance: tolerance)
+                    diagnostics.append(
+                        inverseSummary.inverse == nil
+                            ? "Inverse(A): near-zero pivot encountered at tolerance."
+                            : "Inverse(A): computed via Gauss-Jordan elimination."
+                    )
+                    steps.append(contentsOf: inverseSummary.steps.prefix(3))
+                    answerParts.append(
+                        inverseSummary.inverse == nil
+                            ? "inverse(A): not available (singular/unstable)"
+                            : "inverse(A): available"
+                    )
+                    if let inverse = inverseSummary.inverse {
+                        answerParts.append("inverse(A) ~= \(inlineMatrix(inverse))")
+                        payloads.append(
+                            .matrix(
+                                MatrixReusablePayload(
+                                    entries: stringify(inverse),
+                                    source: "Analyze numeric inverse matrix"
+                                )
+                            )
+                        )
+                    }
+                }
             } else {
-                answerParts.append("lambda_max(A): unavailable")
+                var unsupported: [String] = []
+                if selection.includeTrace { unsupported.append("trace(A)") }
+                if selection.includeDeterminant { unsupported.append("det(A)") }
+                if selection.includeInverse { unsupported.append("inverse(A)") }
+                if !unsupported.isEmpty {
+                    diagnostics.append("Selected square-only metrics require a square matrix.")
+                    answerParts.append("\(unsupported.joined(separator: ", ")): square matrices only")
+                }
             }
-            answerParts.append(
-                inverseSummary.inverse == nil
-                ? "inverse(A): not available (singular/unstable)"
-                : "inverse(A): available"
-            )
-            if let inverse = inverseSummary.inverse {
-                answerParts.append("inverse(A) ~= \(inlineMatrix(inverse))")
-            }
+        }
 
-            diagnostics.append("Trace(A): \(formatted(traceValue)).")
-            diagnostics.append("Determinant: \(formatted(determinantValue)).")
-            diagnostics.append(
-                luSummary.success
-                ? "LU decomposition succeeded with partial pivoting."
-                : "LU decomposition hit a near-zero pivot at tolerance."
-            )
-            diagnostics.append(
-                eigenSummary.eigenvalue == nil
-                ? "Dominant eigen estimate did not converge."
-                : "Dominant eigen estimate computed by power iteration."
-            )
-            diagnostics.append(
-                inverseSummary.inverse == nil
-                ? "Inverse(A): near-zero pivot encountered at tolerance."
-                : "Inverse(A): computed via Gauss-Jordan elimination."
-            )
-
-            steps.append("Computed determinant from elimination pivots.")
-            steps.append(contentsOf: inverseSummary.steps.prefix(3))
-            steps.append(contentsOf: eigenSummary.steps.prefix(2))
-
-            if luSummary.success {
-                steps.append("Computed LU factors with partial pivoting.")
-                payloads.append(
-                    .matrix(
-                        MatrixReusablePayload(
-                            entries: stringify(luSummary.lower),
-                            source: "Analyze numeric L factor"
-                        )
-                    )
-                )
-                payloads.append(
-                    .matrix(
-                        MatrixReusablePayload(
-                            entries: stringify(luSummary.upper),
-                            source: "Analyze numeric U factor"
-                        )
-                    )
-                )
-            }
-
-            if let eigenvector = eigenSummary.eigenvector {
-                payloads.append(
-                    .vector(
-                        VectorReusablePayload(
-                            name: "Analyze dominant eigenvector",
-                            entries: eigenvector.map(formatted),
-                            source: "Analyze dominant eigenvector"
-                        )
-                    )
-                )
-            }
-
-            if let inverse = inverseSummary.inverse {
-                payloads.append(
-                    .matrix(
-                        MatrixReusablePayload(
-                            entries: stringify(inverse),
-                            source: "Analyze numeric inverse matrix"
-                        )
-                    )
-                )
-            }
-        } else {
-            diagnostics.append("Trace, determinant, LU decomposition, and eigen analysis require a square matrix.")
-            answerParts.append("trace(A), det(A), LU, lambda_max(A): square matrices only")
+        if answerParts.isEmpty {
+            answerParts = ["No Analyze outputs selected."]
         }
 
         return MatrixMasterComputationResult(
@@ -814,7 +745,8 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
         }
 
         var steps: [String] = [
-            "Interpreted domain basis β and codomain basis γ as ordered bases.",
+            "Interpreted β = (β_1, ..., β_n) and γ = (γ_1, ..., γ_m) as ordered bases.",
+            "Built B = [β_1 ... β_n] and G = [γ_1 ... γ_m] in standard coordinates.",
             "Tolerance profile: \(formattedScientific(tolerance))."
         ]
         var payloads: [MatrixMasterReusablePayload] = [
@@ -925,6 +857,29 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             )
         }
 
+        let injectiveReason: String
+        if injective {
+            injectiveReason = "Injective criterion: rank(T) = dim(domain) = \(domainDimension), so ker(T) is numerically trivial."
+        } else {
+            injectiveReason = "Injective criterion fails: rank(T) = \(rank) < dim(domain) = \(domainDimension), so nullity(T) = \(nullity) > 0."
+        }
+
+        let surjectiveReason: String
+        if surjective {
+            surjectiveReason = "Surjective criterion: rank(T) = dim(codomain) = \(codomainDimension), so Im(T) spans codomain."
+        } else {
+            surjectiveReason = "Surjective criterion fails: rank(T) = \(rank) < dim(codomain) = \(codomainDimension), so Im(T) has smaller numeric rank."
+        }
+
+        let bijectiveReason: String
+        if domainDimension != codomainDimension {
+            bijectiveReason = "Bijective criterion fails: dim(domain) = \(domainDimension) and dim(codomain) = \(codomainDimension) differ."
+        } else if bijective {
+            bijectiveReason = "Bijective criterion: T is both injective and surjective, so T is bijective."
+        } else {
+            bijectiveReason = "Bijective criterion fails because at least one of injective/surjective is false."
+        }
+
         var diagnostics: [String] = [
             "Mode: Numeric (Double).",
             "Analyze workflow: linear maps.",
@@ -932,21 +887,23 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             "Tolerance: \(formattedScientific(tolerance)).",
             "Domain dimension: \(domainDimension).",
             "Codomain dimension: \(codomainDimension).",
+            "A_std ~= \(inlineMatrix(standardMatrix)).",
             "rank(T): \(rank).",
             "nullity(T): \(nullity).",
             "Kernel basis: \(inlineBasis(kernelBasis)).",
             "Range basis: \(inlineBasis(rangeBasis)).",
-            "Injective: \(injective ? "yes" : "no").",
-            "Surjective: \(surjective ? "yes" : "no").",
-            "Bijective: \(bijective ? "yes" : "no").",
+            injectiveReason,
+            surjectiveReason,
+            bijectiveReason,
             "[T]^beta_gamma ~= \(inlineMatrix(mapBetaGamma))."
         ]
 
         steps.append("Computed kernel and range using tolerance-aware RREF pivot analysis on A.")
-        steps.append("Computed basis-relative representation [T]^beta_gamma = G^-1 * A * B.")
+        steps.append("Computed [T]_{β→γ} = G^-1 * A_std * B.")
 
         var answerParts: [String] = [
             "T: R^\(domainDimension) -> R^\(codomainDimension)",
+            "A_std ~= \(inlineMatrix(standardMatrix))",
             "rank(T) = \(rank)",
             "nullity(T) = \(nullity)",
             "kernel dim = \(kernelBasis.count)",
@@ -973,6 +930,10 @@ public struct StubMatrixNumericEngine: MatrixNumericComputing {
             answerParts.append("similar via basis change: \(similar ? "yes" : "no")")
             diagnostics.append("C_(gamma<-beta) ~= \(inlineMatrix(betaToGamma)).")
             diagnostics.append("C_(beta<-gamma) ~= \(inlineMatrix(gammaToBeta)).")
+            diagnostics.append("Similarity check: [T]_gamma ?~= C_(gamma<-beta) * [T]_beta * C_(beta<-gamma).")
+            diagnostics.append("[T]_beta ~= \(inlineMatrix(mapBeta)).")
+            diagnostics.append("[T]_gamma ~= \(inlineMatrix(mapGamma)).")
+            diagnostics.append("C_(gamma<-beta) * [T]_beta * C_(beta<-gamma) ~= \(inlineMatrix(reconstructedGamma)).")
             diagnostics.append("Similarity residual ||C[T]_beta C^-1 - [T]_gamma||_max ~= \(formatted(similarityResidual)).")
             if !similar {
                 diagnostics.append("Residual exceeded tolerance; check basis compatibility assumptions and conditioning of the coordinate-change matrices.")

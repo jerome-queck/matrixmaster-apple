@@ -69,6 +69,24 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Reset Booted Simulator App State"
+               scriptText = "set -e&#10;BUNDLE_ID=&quot;com.matrixmaster.mobile&quot;&#10;if xcrun simctl list devices | grep -q &quot;(Booted)&quot;; then&#10;  xcrun simctl bootstatus booted -b &gt;/dev/null 2&gt;&amp;1 || true&#10;  xcrun simctl terminate booted &quot;$BUNDLE_ID&quot; &gt;/dev/null 2&gt;&amp;1 || true&#10;  sleep 0.25&#10;  xcrun simctl uninstall booted &quot;$BUNDLE_ID&quot; &gt;/dev/null 2&gt;&amp;1 || true&#10;  xcrun simctl bootstatus booted -b &gt;/dev/null 2&gt;&amp;1 || true&#10;fi">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "44BFCA501985F068F5A661FB"
+                     BuildableName = "MatrixMasterMobile.app"
+                     BlueprintName = "MatrixMasterMobile"
+                     ReferencedContainer = "container:MatrixMaster.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
       <BuildableProductRunnable
          runnableDebuggingMode = "0">
          <BuildableReference

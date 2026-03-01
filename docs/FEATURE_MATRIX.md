@@ -44,13 +44,14 @@ This file maps the requested linear algebra inventory to implementation surfaces
   - explicit basis-dimension controls so vector size can be customized beyond the default 3-entry draft
   - full coordinate-family parameterization diagnostics for non-unique coordinate workflows
   - baseline math typography rendering upgrades across answer/diagnostic/step result surfaces
-- Milestones A through D (Phase 4) are complete for currently in-scope computational workflows.
-- Phase 5 (UI-first math presentation overhaul) is now explicitly planned for:
-  - matrix-grid/LaTeX-forward math presentation upgrades beyond token-level typography
-  - native polynomial/matrix-space element entry editors
-  - explicit REF/RREF panel visibility for elimination workflows
-- Phase 6 is now Orthogonality and least squares.
-- Phase 7 is now Advanced topics.
+- Phase 5 (UI-first math presentation overhaul) now includes:
+  - structured matrix/vector/polynomial rendering across shared result surfaces
+  - object-aware result cards with deduplicated answer/diagnostic/object content
+  - explicit REF/RREF panels for Solve and elimination-backed Analyze workflows
+  - native polynomial-space and matrix-space element entry editors in Spaces
+- Milestones A through E (Phase 5) are complete for currently in-scope computational and presentation workflows.
+- Phase 6 is now Orthogonality and least squares (next).
+- Phase 7 remains Advanced topics.
 - Remaining rows in this matrix that target later phases (theory depth, orthogonality, and advanced topics) remain intentionally in-progress.
 
 ---
@@ -351,7 +352,7 @@ This file maps the requested linear algebra inventory to implementation surfaces
 |---|---|---:|---|
 | structured matrix rendering (grid/bracket object view) | Solve / Analyze / Operate / Spaces | Both | Phase 5 (UI overhaul) |
 | structured vector/polynomial object rendering | Solve / Analyze / Operate / Spaces | Both | Phase 5 (UI overhaul) |
-| copy/export as LaTeX-ready math objects | Result actions / Library export | Both | Phase 5 (UI overhaul) |
+| copy/export as plain/markdown/LaTeX result objects | Result actions / Library export | Both | Follow-up backlog |
 | object-aware result layout (answer/diagnostics/steps cards) | Shared result surfaces | Both | Phase 5 (UI overhaul) |
 
 ---

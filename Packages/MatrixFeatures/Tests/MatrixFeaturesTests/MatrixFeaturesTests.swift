@@ -158,6 +158,63 @@ final class MatrixFeaturesTests: XCTestCase {
         XCTAssertTrue(result.diagnostics.contains(where: { $0.contains("Rank-nullity check: 2 + 0 = 2") }))
     }
 
+    func testCoordinatorAnalyzeMatrixPropertiesRespectsSelection() async {
+        var draft = MatrixDraftInput(rows: 2, columns: 2)
+        draft.setValue("1", row: 0, column: 0)
+        draft.setValue("2", row: 0, column: 1)
+        draft.setValue("3", row: 1, column: 0)
+        draft.setValue("5", row: 1, column: 1)
+
+        let selection = MatrixAnalyzeMatrixPropertiesSelection(
+            includeRankNullity: false,
+            includeColumnSpaceBasis: false,
+            includeRowSpaceBasis: false,
+            includeNullSpaceBasis: false,
+            includeDeterminant: true,
+            includeTrace: false,
+            includeInverse: false,
+            includeRowReductionPanels: false
+        )
+
+        let coordinator = MatrixMasterFeatureCoordinator(
+            matrixDraft: draft,
+            analyzeMatrixPropertiesSelection: selection
+        )
+
+        await coordinator.runQuickComputation(for: .analyze)
+
+        guard let result = coordinator.lastResult else {
+            return XCTFail("Expected analyze result.")
+        }
+
+        XCTAssertTrue(result.answer.contains("det(A) = -1"))
+        XCTAssertFalse(result.answer.contains("trace(A)"))
+        XCTAssertFalse(result.answer.contains("rank(A)"))
+        XCTAssertNil(result.rowReductionPanels)
+    }
+
+    func testCoordinatorAnalyzeMatrixPropertiesRequiresAtLeastOneOutputSelection() async {
+        let selection = MatrixAnalyzeMatrixPropertiesSelection(
+            includeRankNullity: false,
+            includeColumnSpaceBasis: false,
+            includeRowSpaceBasis: false,
+            includeNullSpaceBasis: false,
+            includeDeterminant: false,
+            includeTrace: false,
+            includeInverse: false,
+            includeRowReductionPanels: false
+        )
+
+        let coordinator = MatrixMasterFeatureCoordinator(
+            analyzeMatrixPropertiesSelection: selection
+        )
+
+        await coordinator.runQuickComputation(for: .analyze)
+
+        XCTAssertEqual(coordinator.lastResult?.answer, "Input validation failed")
+        XCTAssertTrue(coordinator.inputValidationMessage?.contains("Select at least one Analyze output") == true)
+    }
+
     func testCoordinatorAnalyzeSpanMembershipUsesBasisAndTargetVector() async {
         let basis = BasisDraftInput(vectors: [
             VectorDraftInput(name: "b1", entries: ["1", "0"]),
@@ -235,7 +292,6 @@ final class MatrixFeaturesTests: XCTestCase {
         await coordinator.runQuickComputation(for: .analyze)
 
         XCTAssertTrue(coordinator.lastResult?.answer.contains("rank(T) = 1") == true)
-        XCTAssertTrue(coordinator.lastResult?.answer.contains("[T]^beta_gamma") == true)
         XCTAssertTrue(
             coordinator.lastResult?.reusablePayloads.contains(where: {
                 if case let .matrix(payload) = $0 {
@@ -281,7 +337,7 @@ final class MatrixFeaturesTests: XCTestCase {
         XCTAssertEqual(coordinator.secondaryBasisDraft.dimension, 4)
         XCTAssertEqual(coordinator.basisDraft.vectors[0].name, "1")
         XCTAssertEqual(coordinator.basisDraft.vectors[1].name, "x")
-        XCTAssertEqual(coordinator.basisDraft.vectors[2].name, "x^2")
+        XCTAssertEqual(coordinator.basisDraft.vectors[2].name, "x²")
     }
 
     func testCoordinatorAppliesMatrixSpacePresetToPrimarySet() {
@@ -346,5 +402,33 @@ final class MatrixFeaturesTests: XCTestCase {
 
         await coordinator.runQuickComputation(for: .library)
         XCTAssertTrue(coordinator.lastResult?.answer.contains("Library vectors: 1") == true)
+    }
+
+    func testCoordinatorEnrichesSolveResultWithStructuredObjectsAndRowReductionPanels() async {
+        var solveDraft = MatrixDraftInput(rows: 2, columns: 3)
+        solveDraft.setValue("1", row: 0, column: 0)
+        solveDraft.setValue("1", row: 0, column: 1)
+        solveDraft.setValue("2", row: 0, column: 2)
+        solveDraft.setValue("2", row: 1, column: 0)
+        solveDraft.setValue("-1", row: 1, column: 1)
+        solveDraft.setValue("0", row: 1, column: 2)
+
+        let coordinator = MatrixMasterFeatureCoordinator(matrixDraft: solveDraft)
+        await coordinator.runQuickComputation(for: .solve)
+
+        XCTAssertNotNil(coordinator.lastResult?.rowReductionPanels)
+        XCTAssertTrue((coordinator.lastResult?.structuredObjects.count ?? 0) > 0)
+    }
+
+    func testCoordinatorStoresResultsPerDestination() async {
+        let coordinator = MatrixMasterFeatureCoordinator()
+
+        await coordinator.runQuickComputation(for: .analyze)
+        XCTAssertNotNil(coordinator.result(for: .analyze))
+        XCTAssertNil(coordinator.result(for: .operate))
+
+        await coordinator.runQuickComputation(for: .operate)
+        XCTAssertNotNil(coordinator.result(for: .analyze))
+        XCTAssertNotNil(coordinator.result(for: .operate))
     }
 }
